@@ -17,7 +17,7 @@ SOURCES     := $(patsubst $(SRCDIR)/%,%,$(wildcard $(SRCDIR)/*.cpp) $(wildcard $
 #  Get all objects from the sources (with the obj dir prefix)
 OBJECTS     := $(patsubst %.cpp,$(OBJDIR)/%.o,$(SOURCES))
 #  Get all obj directories that must exist for compilation
-OBJDIRSREQ  := $(dir $(OBJECTS))
+OBJDIRSREQ  := $(sort $(dir $(OBJECTS)))
 #  Create the library search path and include flags
 LIBFLAGS    := -L$(LIBDIR) $(addprefix -l,$(LIBS))
 #  Create the full compilation command (.cpp -> .o)
