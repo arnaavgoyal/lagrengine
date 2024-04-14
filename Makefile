@@ -8,7 +8,7 @@ INCDIR := include
 LIBDIR := lib
 OBJDIR := build
 LIBS   := user32 gl
-FLAGS  := -Wall -g -std=c++20
+FLAGS  := -Wall -g -MMD -std=c++20
 
 # Processing
 
@@ -36,8 +36,10 @@ $(EXE): $(OBJECTS)
 
 #  Compiles object files from source files
 $(OBJECTS): $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
-	$(COMPILECMD) $^ -o $@
+	$(COMPILECMD) $< -o $@
 
 #  Creates the object file directories
 $(OBJDIRSREQ):
 	mkdir -p $@
+
+-include $(OBJECTS:%.o=%.d)
