@@ -6,10 +6,24 @@
 #include <fcntl.h>
 #include <io.h>
 
+#include <glad/gl.h>
+
 #include "engine.h"
 
 #define WINDOW_CLASS_NAME "window"
-#define WINDOW_TITLE "Engine"
+#define WINDOW_TITLE "Lagrengine"
+
+// OpenGL DLL
+HMODULE opengl;
+
+/**
+ * Used by GLAD to get OpenGL functions from the OpenGL dll
+ * @param name the name of the function to get
+ * @return a pointer to the function
+ */
+GLADapiproc getOpenGLProc(char const *name) {
+    return (GLADapiproc) GetProcAddress(opengl, name);
+}
 
 /**
  * Window procedure callback to handle messages
@@ -24,6 +38,7 @@ LRESULT CALLBACK windowCallback(HWND window, UINT msg, WPARAM wParam,
     LRESULT result;
     switch(msg) {
         case WM_CLOSE:
+        case WM_DESTROY:
             PostQuitMessage(0);
             result = 0;
             break;
@@ -76,6 +91,110 @@ void setupCRTIO() {
     std::cerr.clear();
 }
 
+HWND createWindow(HINSTANCE inst, char const *title, int width, int height) {
+    // setup the window class
+    WNDCLASSEXA window_class;
+    window_class.cbSize = sizeof(WNDCLASSEX);
+    window_class.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
+    window_class.lpfnWndProc = windowCallback;
+    window_class.cbClsExtra = 0;
+    window_class.cbWndExtra = 0;
+    window_class.hInstance = inst;
+    window_class.hIcon = 0;
+    window_class.hCursor = 0;
+    window_class.hbrBackground = 0;
+    window_class.lpszMenuName = 0;
+    window_class.lpszClassName = WINDOW_CLASS_NAME;
+    window_class.hIconSm = 0;
+
+    // register the class
+    if(!RegisterClassExA(&window_class)) {
+        // TODO is this the best way to show the error? Or should we log file?
+        fprintf(stderr, "Failed to register window class: %s\n",
+                WINDOW_CLASS_NAME);
+
+        // NULL on failure
+        return 0;
+    }
+
+    // we want to specify the size of the window in terms of the client rect,
+    // not the total dimensions like windows does it
+    RECT client_rect = {
+        .right = width,
+        .bottom = height,
+    };
+
+    AdjustWindowRect(&client_rect, WS_OVERLAPPEDWINDOW, false);
+
+    // create the window
+    HWND window = CreateWindowExA(0, WINDOW_CLASS_NAME, title,
+            WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT,
+            client_rect.right - client_rect.left,
+            client_rect.bottom - client_rect.top, 0, 0, inst, 0);
+
+    if(!window) {
+        // TODO is this the best way to show the error? Or should we log file?
+        fprintf(stderr, "Failed to create window: %s\n", WINDOW_TITLE);
+
+        // NULL on failure
+        return 0;
+    }
+
+    return window;
+}
+
+/**
+ * Setup an OpenGL context
+ */
+int setupOpenGL(HDC device_context) {
+    PIXELFORMATDESCRIPTOR pfd = {
+        .nSize = sizeof(PIXELFORMATDESCRIPTOR),
+        .nVersion = 1,
+        .dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+        .iPixelType = PFD_TYPE_RGBA,
+        .cColorBits = 32,
+        .cDepthBits = 24,
+        .cStencilBits = 8,
+        .cAuxBuffers = 0,
+        .iLayerType = PFD_MAIN_PLANE,
+    };
+
+    int pf_idx = ChoosePixelFormat(device_context, &pfd);
+
+    if(!pf_idx) {
+        // TODO is this the best way to show the error? Or should we log file?
+        fprintf(stderr, "Failed to choose pixel format for the given DC\n");
+
+        // NULL on failure
+        return 0;
+    }
+
+    if(!SetPixelFormat(device_context, pf_idx, &pfd)) {
+        // TODO is this the best way to show the error? Or should we log file?
+        fprintf(stderr, "Failed to set pixel format for the given DC\n");
+
+        // NULL on failure
+        return 0;
+    }
+
+    HGLRC opengl_context = wglCreateContext(device_context);
+    if(!opengl_context) {
+        fprintf(stderr, "Failed to create an OpenGL context for the given DC");
+
+        // NULL on failure
+        return 0;
+    }
+
+    if(!wglMakeCurrent(device_context, opengl_context)) {
+        fprintf(stderr, "Failed to make the OpenGL context current");
+
+        // NULL on failure
+        return 0;
+    }
+
+    return 1;
+}
+
 /**
  * Win32 entry point
  * @param inst the current instance of the program
@@ -99,41 +218,43 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
 
     // start up the engine thread
     std::thread engine(engineInit);
-    
-    // setup the window class
-    WNDCLASSEXA windowClass;
-    windowClass.cbSize = sizeof(WNDCLASSEX);
-    windowClass.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
-    windowClass.lpfnWndProc = windowCallback;
-    windowClass.cbClsExtra = 0;
-    windowClass.cbWndExtra = 0;
-    windowClass.hInstance = inst;
-    windowClass.hIcon = 0;
-    windowClass.hCursor = 0;
-    windowClass.hbrBackground = 0;
-    windowClass.lpszMenuName = 0;
-    windowClass.lpszClassName = WINDOW_CLASS_NAME;
-    windowClass.hIconSm = 0;
 
-    if(!RegisterClassExA(&windowClass)) {
-        // TODO document failure somehow
-        // Arnaav, you might be wondering, why don't you just print to stderr or
-        // stdout? Well, since this is a "Window" application and not a
-        // "Console" application, stderr and stdout do not exist. We would have
-        // to initialize our own console to do so.
+    // create a window
+    HWND window = createWindow(inst, WINDOW_TITLE, 600, 300);
+
+    if(!window) {
+        fprintf(stderr, "Could not create window %s, aborting\n", WINDOW_TITLE);
+
+        // Windows wants 0 returned if message loop is not reached
+        return 0;
+    }
+
+    // opengl setup
+    HDC device_context = GetDC(window);
+    if(!device_context) {
+        fprintf(stderr, "Could not get device context for window %s, aborting",
+                WINDOW_TITLE);
+
+        // Windows wants 0 returned if message loop is not reached
+        return 0;
+    }
+
+    setupOpenGL(device_context);
+
+    opengl = LoadLibraryA("opengl32.dll");
+
+    if(!opengl) {
+        // TODO is this the best way to show the error? Or should we log file?
+        fprintf(stderr, "Could not find opengl32.dll: %s\n", WINDOW_TITLE);
 
         // Windows documentation says to return 0 if message loop is not
         // reached, we can choose to disregard this
         return 0;
     }
 
-    HWND window = CreateWindowExA(0, WINDOW_CLASS_NAME, WINDOW_TITLE,
-            WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 500,
-            500, 0, 0, inst, 0);
-
-    if(!window) {
-        // TODO document failure somehow
-        // Reference note in the RegisterClassExA if statement.
+    if(!gladLoadGLUserPtr((GLADuserptrloadfunc) GetProcAddress, opengl)) {
+        // TODO is this the best way to show the error? Or should we log file?
+        fprintf(stderr, "Failed to initialize OpenGL: %s\n", WINDOW_TITLE);
 
         // Windows documentation says to return 0 if message loop is not
         // reached, we can choose to disregard this
@@ -142,6 +263,8 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
 
     bool running = true;
     MSG msg;
+
+    glViewport(0, 0, 600, 300);
 
     while(running) {
         // Check for a message with no filters, remove it if there is one
@@ -157,6 +280,10 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
                 DispatchMessageA(&msg);
             }
         }
+		glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+        SwapBuffers(device_context);
     }
 
     // Windows wants the wParam of the WM_QUIT message returned, we can choose

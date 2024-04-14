@@ -1,4 +1,3 @@
-
 # Variables
 
 EXE    := engine.exe
@@ -7,7 +6,7 @@ SRCDIR := src
 INCDIR := include
 LIBDIR := lib
 OBJDIR := build
-LIBS   := user32 gl
+LIBS   := user32 gdi32 gl opengl32
 FLAGS  := -Wall -g -std=c++20
 
 # Processing
@@ -40,4 +39,7 @@ $(OBJECTS): $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 
 #  Creates the object file directories
 $(OBJDIRSREQ):
-	mkdir -p $@
+	mkdir $@
+
+run: all
+	./engine.exe
