@@ -1,10 +1,12 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <fstream>
 #include <windows.h>
 
 #include "engine.h"
 #include "utils/event.h"
+#include "utils/job.h"
 
 struct SimulationStartEvent { };
 struct SimulationEndEvent { };
@@ -15,27 +17,33 @@ void engineMain() {
 
     // ...
 
-    SimulationStartEvent sse;
-    event::trigger(sse);
+    while (true) {
 
-    // ...
+        // ...
 
-    SimulationEndEvent see;
-    event::trigger(see);
+        SimulationStartEvent sse;
+        event::trigger(sse);
 
-    // ...
+        // ...
 
-    RenderStartEvent rse;
-    event::trigger(rse);
+        SimulationEndEvent see;
+        event::trigger(see);
 
-    // ...
+        // ...
 
-    RenderEndEvent ree;
-    event::trigger(ree);
+        RenderStartEvent rse;
+        event::trigger(rse);
 
-    // ...
+        // ...
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        RenderEndEvent ree;
+        event::trigger(ree);
+
+        // ...
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+
+    }
 }
 
 void engineInit() {
@@ -47,9 +55,22 @@ void engineInit() {
         }
     );
 
+    JobManager jm;
+    auto simj = jm.registerJob("Simulation");
+    auto occlusionj = jm.registerJob("Occlusion");
+    jm.registerDependency(occlusionj, simj);
+    auto renderj = jm.registerJob("Rendering");
+    jm.registerDependency(renderj, simj);
+    jm.registerDependency(renderj, occlusionj);
+
+    std::fstream out("jobgraph.dot", std::fstream::out);
+    out << jm;
+    out.close();
+
     // ...
 
     engineMain();
 
     // ...
+    
 }
