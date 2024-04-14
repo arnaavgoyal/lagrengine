@@ -33,8 +33,8 @@ template <typename EventType>
 typename Impl<EventType>::ListenerList Impl<EventType>::listeners = ListenerList();
 
 template <typename EventType>
-void trigger(EventType &&e) {
-    std::thread t(Impl<EventType>::triggerImpl, std::forward<EventType>(e));
+void trigger(EventType e) {
+    std::thread t(Impl<EventType>::triggerImpl, e);
     t.join();
 }
 
