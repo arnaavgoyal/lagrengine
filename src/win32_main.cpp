@@ -1,4 +1,12 @@
+#include <thread>
+#include <cassert>
+#include <stdio.h>
+#include <iostream>
 #include <windows.h>
+#include <fcntl.h>
+#include <io.h>
+
+#include "engine.h"
 
 #define WINDOW_CLASS_NAME "window"
 #define WINDOW_TITLE "Engine"
@@ -27,6 +35,48 @@ LRESULT CALLBACK windowCallback(HWND window, UINT msg, WPARAM wParam,
 }
 
 /**
+ * Sets up the C and C++ runtime io (file descriptors
+ * and iostreams, respectively).
+ * Microsoft is a terrible company, so we need this.
+ */
+void setupCRTIO() {
+
+    // get the stream handles
+    HANDLE winStdinHandle = GetStdHandle(STD_INPUT_HANDLE);
+    HANDLE winStdoutHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    HANDLE winStderrHandle = GetStdHandle(STD_ERROR_HANDLE);
+    assert(
+        winStdinHandle != INVALID_HANDLE_VALUE
+        && winStdoutHandle != INVALID_HANDLE_VALUE
+        && winStderrHandle != INVALID_HANDLE_VALUE
+    );
+
+    // set the crt streams to these streams...
+    FILE *fp = nullptr;
+
+    // stdin
+    if (!freopen_s(&fp, "CONIN$", "r", stdin)) {
+        setvbuf(stdin, nullptr, _IONBF, 0);
+    }
+
+    // stdout
+    if (!freopen_s(&fp, "CONOUT$", "w", stdout)) {
+        setvbuf(stdout, nullptr, _IONBF, 0);
+    }
+
+    // stderr
+    if (!freopen_s(&fp, "CONOUT$", "w", stderr)) {
+        setvbuf(stderr, nullptr, _IONBF, 0);
+    }
+
+    // sync c++ streams
+    std::ios::sync_with_stdio(true);
+    std::cin.clear();
+    std::cout.clear();
+    std::cerr.clear();
+}
+
+/**
  * Win32 entry point
  * @param inst the current instance of the program
  * @param prevInst the previous instance of the program
@@ -36,6 +86,20 @@ LRESULT CALLBACK windowCallback(HWND window, UINT msg, WPARAM wParam,
  */
 int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         int cmdShow) {
+
+    // attempt to get a console...
+    if (!AllocConsole()) {
+        // welp, windows sucks
+        return 0;
+    }
+
+    // yay, we have a console!
+    // setup the crt io
+    setupCRTIO();
+
+    // start up the engine thread
+    std::thread engine(engineInit);
+    
     // setup the window class
     WNDCLASSEXA windowClass;
     windowClass.cbSize = sizeof(WNDCLASSEX);
