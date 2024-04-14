@@ -35,7 +35,7 @@ $(EXE): $(OBJECTS)
 
 #  Compiles object files from source files
 $(OBJECTS): $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
-	$(COMPILECMD) $^ -o $@
+	$(COMPILECMD) $< -o $@
 
 #  Creates the object file directories
 $(OBJDIRSREQ):
@@ -43,3 +43,5 @@ $(OBJDIRSREQ):
 
 run: all
 	./engine.exe
+
+-include $(OBJECTS:%.o=%.d)
