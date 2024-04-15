@@ -49,12 +49,6 @@ private:
         }
     }
 
-    template <typename Callable, typename... Args>
-    requires std::invocable<Callable, Args...>
-    static auto packageFunction(Callable func, Args &&... args) {
-        return std::bind(func, std::forward<Args>(args)...);
-    }
-
 public:
 
     template <typename Callable, typename... Args>
@@ -62,7 +56,7 @@ public:
     ThreadPool &run(Callable func, Args &&... args) {
         Command cmd{
             Command::run,
-            std::function<void()>(packageFunction(func, std::forward<Args>(args)...))
+            std::function<void()>(std::bind(func, std::forward<Args>(args)...))
         };
         commandQueue.push(cmd);
         return *this;
