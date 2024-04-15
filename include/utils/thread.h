@@ -68,26 +68,30 @@ public:
         return *this;
     }
 
-    void killAll() {
-        assert(alive);
-        for (unsigned i = 0; i < num; i++) {
-            Command dieCmd{Command::die};
-            commandQueue.push(dieCmd);
-        }
-        alive = false;
-    }
-
-    ThreadPool &init() {
-        assert(!alive);
-        for (unsigned i = 0; i < num; i++) {
+    ThreadPool &add(unsigned n) {
+        for (unsigned i = 0; i < n; i++) {
             std::thread t(runner, std::ref(commandQueue), std::ref(responseQueue));
             t.detach();
         }
-        alive = true;
+        num += n;
         return *this;
     }
 
-    ThreadPool(unsigned n) : num(n) { }
+    ThreadPool &kill(unsigned n) {
+        assert(n <= num && "kill more threads than are in the pool?");
+        for (unsigned i = 0; i < n; i++) {
+            Command dieCmd{Command::die};
+            commandQueue.push(dieCmd);
+        }
+        num -= n;
+        return *this;
+    }
+
+    ThreadPool &killAll() { kill(num); }
+
+    unsigned size() { return num; }
+
+    ThreadPool(unsigned n) : num(0) { add(n); }
 
     ~ThreadPool() {
         killAll();

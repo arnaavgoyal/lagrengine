@@ -93,15 +93,21 @@ void engineInit() {
 
     auto task = [&log](unsigned id){ log << std::format("Thread #{}\n", id); };
 
-    ThreadPool tp(2);
+    ThreadPool tp(5);
     tp.run(task, 1)
         .run(task, 2)
         .run(task, 3)
+        .kill(2)
         .run(task, 4)
-        .init()
         .run(task, 5)
         .run(task, 6)
         .run(task, 7)
+        .add(1)
+        .run(task, 8)
+        .run(task, 9)
+        .run(task, 10)
+        .run(task, 11)
+        .run(task, 12)
         .killAll();
 
     // ...
