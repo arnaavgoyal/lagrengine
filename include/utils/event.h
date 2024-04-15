@@ -43,7 +43,7 @@ struct Impl {
 template <typename EventType>
 typename Impl<EventType>::ListenerList Impl<EventType>::listeners = ListenerList();
 
-void trigger() { }
+void trigger();
 
 /**
  * Trigger events, notifying all active listeners to
@@ -104,7 +104,7 @@ void deregisterListener(ListenerHandle<EventType> &lh) {
     lh.valid = false;
 }
 
-void deregisterListeners() { }
+void deregisterListeners();
 
 template <typename EventType, typename... Args>
 void deregisterListeners(ListenerHandle<EventType> &lh, Args... args) {
