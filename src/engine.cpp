@@ -3,10 +3,14 @@
 #include <thread>
 #include <fstream>
 #include <windows.h>
+#include <format>
 
 #include "engine.h"
 #include "utils/event.h"
 #include "utils/job.h"
+#include "utils/log.h"
+#include "utils/tsq.h"
+#include "utils/thread.h"
 
 struct SimulationStartEvent { };
 struct SimulationEndEvent { };
@@ -48,29 +52,62 @@ void engineMain() {
 
 void engineInit() {
 
+    Log log(std::cerr);
+
     event::registerListener<SimulationEndEvent>(
-        [](SimulationEndEvent){
-            std::cout << "Sim ended! w/ cout\n";
-            std::cerr << "Sim ended! w/ cerr\n";
+        [&log](SimulationEndEvent){
+            log << "Sim ended! w/ cout\n";
+            log << "Sim ended! w/ cerr\n";
         }
     );
 
-    JobManager jm;
-    auto simj = jm.registerJob("Simulation");
-    auto occlusionj = jm.registerJob("Occlusion");
-    jm.registerDependency(occlusionj, simj);
-    auto renderj = jm.registerJob("Rendering");
-    jm.registerDependency(renderj, simj);
-    jm.registerDependency(renderj, occlusionj);
+    event::registerListener<WindowCloseRequestedEvent>(
+        [&log](WindowCloseRequestedEvent e){
+            log << "Window close requested!\n";
+        }
+    );
 
-    std::fstream out("jobgraph.dot", std::fstream::out);
-    out << jm;
-    out.close();
+    event::registerListener<WindowDestroyStartEvent>(
+        [&log](WindowDestroyStartEvent e){
+            log << "Window destroy start...\n";
+        }
+    );
+
+    event::registerListener<WindowDestroyEndEvent>(
+        [&log](WindowDestroyEndEvent e){
+            log << "Window destroy end!\n";
+        }
+    );
+
+    // JobManager jm;
+    // auto simj = jm.registerJob("Simulation", nullptr, nullptr);
+    // auto occlusionj = jm.registerJob("Occlusion", nullptr, nullptr);
+    // jm.registerDependency(occlusionj, simj);
+    // auto renderj = jm.registerJob("Rendering", nullptr, nullptr);
+    // jm.registerDependency(renderj, simj);
+    // jm.registerDependency(renderj, occlusionj);
+
+    // std::fstream out("jobgraph.dot", std::fstream::out);
+    // out << jm;
+    // out.close();
+
+    auto task = [&log](unsigned id){ log << std::format("Thread #{}\n", id); };
+
+    ThreadPool tp(2);
+    tp.run(task, 1)
+        .run(task, 2)
+        .run(task, 3)
+        .run(task, 4)
+        .init()
+        .run(task, 5)
+        .run(task, 6)
+        .run(task, 7)
+        .killAll();
 
     // ...
 
     engineMain();
 
     // ...
-    
+
 }

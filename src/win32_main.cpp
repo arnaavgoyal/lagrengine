@@ -9,6 +9,7 @@
 #include <glad/gl.h>
 
 #include "engine.h"
+#include "utils/event.h"
 
 #define WINDOW_CLASS_NAME "window"
 #define WINDOW_TITLE "Lagrengine"
@@ -28,7 +29,16 @@ LRESULT CALLBACK windowCallback(HWND window, UINT msg, WPARAM wParam,
     LRESULT result;
     switch(msg) {
         case WM_CLOSE:
+            event::trigger(WindowCloseRequestedEvent{});
+            PostQuitMessage(0);
+            result = 0;
+            break;
         case WM_DESTROY:
+            event::trigger(WindowDestroyStartEvent{});
+            result = 0;
+            break;
+        case WM_NCDESTROY:
+            event::trigger(WindowDestroyEndEvent{});
             PostQuitMessage(0);
             result = 0;
             break;
