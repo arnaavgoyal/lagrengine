@@ -9,6 +9,7 @@
 #include <glad/gl.h>
 
 #include "engine.h"
+#include "utils/shader.h"
 
 #define WINDOW_CLASS_NAME "window"
 #define WINDOW_TITLE "Lagrengine"
@@ -249,12 +250,11 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         return 0;
     }
 
-    // opengl setup
-
     // context variables (device and rendering)
     HDC dc;
     HGLRC rc;
 
+    // opengl setup
     if(!setupOpenGL(&dc, &rc, window)) {
         fprintf(stderr, "Could not initialize OpenGL, aborting\n");
 
@@ -262,12 +262,52 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         return 0;
     }
 
+    /** Code won't work yet, OpenGL needs some more setup
+    // TODO this is a shader program test that should be removed later
+    ShaderProgram program = compileShaderProgram("shaders/basic_vert.glsl",
+            "shaders/basic_frag.glsl");
 
-    bool running = true;
-    MSG msg;
+    if(!program) {
+        fprintf(stderr, "Failed to create shader program\n");
+
+        return 0;
+    }
+
+    glUseProgram(program);
+
+    // we just making a little triangle :)
+    float vertices[] = {
+        // position, color
+        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
+        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+    };
+
+    // very basic VAO and VBO implementation
+    unsigned int vao, vbo;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
+            GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+            (void*) 0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+            (void*) (3 * sizeof(float)));
+            */
 
     // set the viewport to the client window size
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+    // set the clear color for the context
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+    // necessary loop variables
+    bool running = true;
+    MSG msg;
 
     while(running) {
         // Check for a message with no filters, remove it if there is one
@@ -285,8 +325,10 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         }
 
         // clear the buffer
-		glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
+
+        // draw a triangle
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         // swap buffers
         SwapBuffers(dc);
