@@ -87,7 +87,7 @@ public:
         return *this;
     }
 
-    ThreadPool &killAll() { kill(num); }
+    ThreadPool &killAll() { kill(num); return *this; }
 
     unsigned size() { return num; }
 
