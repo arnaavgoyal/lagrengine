@@ -42,6 +42,6 @@ $(OBJDIRSREQ):
 	mkdir $@
 
 run: all
-	./engine.exe
+	./$(EXE)
 
 -include $(OBJECTS:%.o=%.d)
