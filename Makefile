@@ -7,7 +7,7 @@ INCDIR := include
 LIBDIR := lib
 OBJDIR := build
 LIBS   := user32 gdi32 gl opengl32
-FLAGS  := -Wall -g -std=c++20
+FLAGS  := -Wall -g -std=c++20 -MMD
 
 # Processing
 
