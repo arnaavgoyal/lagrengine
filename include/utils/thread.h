@@ -26,7 +26,7 @@ private:
 
     struct Command {
         enum { run, die } cmd;
-        std::function<void()> func;
+        std::function<void ()> func;
     };
 
     unsigned num;
@@ -48,6 +48,12 @@ private:
         }
     }
 
+    // Reference wrapping utility for function arg binding
+    template <typename T>
+    static std::reference_wrapper<T> maybeRefWrap(T &t) { return std::ref(t); }
+    template <typename T>
+    static T &&maybeRefWrap(T &&t) { return std::forward<T>(t); }
+
 public:
 
     /**
@@ -66,7 +72,7 @@ public:
     ThreadPool &run(Callable &&func, Args &&... args) {
         Command cmd{
             Command::run,
-            std::function<void()>(std::bind(std::forward<Callable>(func), std::forward<Args>(args)...))
+            std::function<void ()>(std::bind(std::forward<Callable>(func), maybeRefWrap(std::forward<Args>(args))...))
         };
         commandQueue.push(cmd);
         return *this;
