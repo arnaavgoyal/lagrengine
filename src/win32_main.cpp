@@ -238,7 +238,7 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         int cmdShow) {
 
     // attempt to get a console...
-    if (!AllocConsole()) {
+    if (!AttachConsole(ATTACH_PARENT_PROCESS) && !AllocConsole()) {
         // welp, windows sucks
         return 0;
     }
