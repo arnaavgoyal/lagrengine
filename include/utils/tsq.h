@@ -4,12 +4,13 @@
 #include <deque>
 #include <mutex>
 #include <semaphore>
+#include <limits.h>
 
 template <typename T>
 class TSQ {
 public:
     
-    static constexpr unsigned max = 100;
+    static constexpr unsigned max = UINT_MAX;
     std::deque<T> q;
     std::mutex q_write;
     std::counting_semaphore<max> q_sema;
