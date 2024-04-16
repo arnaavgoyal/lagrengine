@@ -43,16 +43,20 @@ struct Impl {
 template <typename EventType>
 typename Impl<EventType>::ListenerList Impl<EventType>::listeners = ListenerList();
 
+void trigger() { }
+
 /**
- * Trigger an event, notifying all active listeners to
- * this event.
- * Passes a copy of the given event object to listeners.
+ * Trigger events, notifying all active listeners to
+ * the events.
+ * Passes a copy of the given event objects to listeners.
  * @param e the event object to pass along to listeners
+ * @param args the rest of the event objects
  */
-template <typename EventType>
-void trigger(EventType e) {
+template <typename EventType, typename... Args>
+void trigger(EventType e, Args... args) {
     std::thread t(Impl<EventType>::triggerImpl, e);
-    t.join();
+    t.detach();
+    trigger(args...);
 }
 
 /**
@@ -98,6 +102,14 @@ void deregisterListener(ListenerHandle<EventType> &lh) {
     assert(lh.valid == true && "invalid listener ref");
     Impl<EventType>::listeners.erase(lh.iter);
     lh.valid = false;
+}
+
+void deregisterListeners() { }
+
+template <typename EventType, typename... Args>
+void deregisterListeners(ListenerHandle<EventType> &lh, Args... args) {
+    deregisterListener(lh);
+    deregisterListeners(args...);
 }
 
 } // namespace event
