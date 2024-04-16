@@ -26,10 +26,9 @@ private:
 
     struct Command {
         enum { run, die } cmd;
-        std::function<void()> func;
+        std::function<void ()> func;
     };
 
-    bool alive;
     unsigned num;
     TSQ<Command> commandQueue;
     TSQ<Response> responseQueue;
@@ -49,25 +48,42 @@ private:
         }
     }
 
-    template <typename Callable, typename... Args>
-    requires std::invocable<Callable, Args...>
-    static auto packageFunction(Callable func, Args &&... args) {
-        return std::bind(func, std::forward<Args>(args)...);
-    }
+    // Reference wrapping utility for function arg binding
+    template <typename T>
+    static std::reference_wrapper<T> maybeRefWrap(T &t) { return std::ref(t); }
+    template <typename T>
+    static T &&maybeRefWrap(T &&t) { return std::forward<T>(t); }
 
 public:
 
+    /**
+     * Queues a function to be run by the next available
+     * thread in the thread pool.
+     * All args are perfectly forwarded and bound to the
+     * function at the time of this call. Be careful when
+     * passing references as arguments and then modifying
+     * them afterwards.
+     * @param func the function to run
+     * @param args the args to run it with
+     * @return this threadpool instance for call chaining
+     */
     template <typename Callable, typename... Args>
     requires std::invocable<Callable, Args...>
-    ThreadPool &run(Callable func, Args &&... args) {
+    ThreadPool &run(Callable &&func, Args &&... args) {
         Command cmd{
             Command::run,
-            std::function<void()>(packageFunction(func, std::forward<Args>(args)...))
+            std::function<void ()>(std::bind(std::forward<Callable>(func), maybeRefWrap(std::forward<Args>(args))...))
         };
         commandQueue.push(cmd);
         return *this;
     }
 
+    /**
+     * Adds threads to the pool. They will immediately be
+     * available for running.
+     * @param n the number of threads to add
+     * @return this threadpool instance for call chaining
+     */
     ThreadPool &add(unsigned n) {
         for (unsigned i = 0; i < n; i++) {
             std::thread t(runner, std::ref(commandQueue), std::ref(responseQueue));
@@ -77,6 +93,14 @@ public:
         return *this;
     }
 
+    /**
+     * Kills threads and removes them from the pool.
+     * Threads are killed via a kill command, meaning
+     * that some (or all) threads may not be killed
+     * immediately.
+     * @param n the number of threads to kill
+     * @return this threadpool instance for call chaining
+     */
     ThreadPool &kill(unsigned n) {
         assert(n <= num && "kill more threads than are in the pool?");
         for (unsigned i = 0; i < n; i++) {
@@ -87,15 +111,19 @@ public:
         return *this;
     }
 
+    /**
+     * Kills all of the threads in the pool.
+     * May not take immediate effect due to other
+     * commands in queue or non-idling threads.
+     * @return this threadpool instance for call chaining
+     */
     ThreadPool &killAll() { kill(num); return *this; }
 
     unsigned size() { return num; }
 
     ThreadPool(unsigned n) : num(0) { add(n); }
 
-    ~ThreadPool() {
-        killAll();
-    }
+    ~ThreadPool() { killAll(); }
 };
 
 #endif
