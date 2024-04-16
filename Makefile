@@ -22,7 +22,7 @@ LIBFLAGS    := -L$(LIBDIR) $(addprefix -l,$(LIBS))
 #  Create the full compilation command (.cpp -> .o)
 COMPILECMD  := $(CC) $(FLAGS) -I$(INCDIR) -c
 #  Create the full build command (.o -> .exe)
-BUILDCMD    := $(CC) $(LIBFLAGS)
+BUILDCMD    := $(CC) -g $(LIBFLAGS)
 
 # Rules
 
