@@ -4,6 +4,7 @@
 #include <fstream>
 #include <windows.h>
 #include <format>
+#include <syncstream>
 
 #include "engine.h"
 #include "utils/event.h"
@@ -26,89 +27,78 @@ void engineMain() {
         // ...
 
         SimulationStartEvent sse;
-        event::trigger(sse);
+        //event::trigger(sse);
 
         // ...
 
         SimulationEndEvent see;
-        event::trigger(see);
+        //event::trigger(see);
 
         // ...
 
         RenderStartEvent rse;
-        event::trigger(rse);
+        //event::trigger(rse);
 
         // ...
 
         RenderEndEvent ree;
-        event::trigger(ree);
+        //event::trigger(ree);
 
         // ...
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        std::this_thread::sleep_for(std::chrono::seconds(20));
 
     }
 }
 
 void engineInit() {
 
-    Log log(std::cerr);
-
     event::registerListener<SimulationEndEvent>(
-        [&log](SimulationEndEvent){
-            log << "Sim ended! w/ cout\n";
-            log << "Sim ended! w/ cerr\n";
+        [](SimulationEndEvent){
+            std::osyncstream(std::cerr) << "Sim ended! w/ cout\n";
+            std::osyncstream(std::cerr) << "Sim ended! w/ cerr\n";
         }
     );
 
     event::registerListener<WindowCloseRequestedEvent>(
-        [&log](WindowCloseRequestedEvent e){
-            log << "Window close requested!\n";
+        [](WindowCloseRequestedEvent e){
+            std::osyncstream(std::cerr) << "Window close requested!\n";
         }
     );
 
     event::registerListener<WindowDestroyStartEvent>(
-        [&log](WindowDestroyStartEvent e){
-            log << "Window destroy start...\n";
+        [](WindowDestroyStartEvent e){
+            std::osyncstream(std::cerr) << "Window destroy start...\n";
         }
     );
 
     event::registerListener<WindowDestroyEndEvent>(
-        [&log](WindowDestroyEndEvent e){
-            log << "Window destroy end!\n";
+        [](WindowDestroyEndEvent e){
+            std::osyncstream(std::cerr) << "Window destroy end!\n";
         }
     );
 
-    // JobManager jm;
-    // auto simj = jm.registerJob("Simulation", nullptr, nullptr);
-    // auto occlusionj = jm.registerJob("Occlusion", nullptr, nullptr);
-    // jm.registerDependency(occlusionj, simj);
-    // auto renderj = jm.registerJob("Rendering", nullptr, nullptr);
-    // jm.registerDependency(renderj, simj);
-    // jm.registerDependency(renderj, occlusionj);
+    bool done = false;
 
-    // std::fstream out("jobgraph.dot", std::fstream::out);
-    // out << jm;
-    // out.close();
+    JobManager jm;
+    auto simj = jm.registerJob("Simulation", [](void *){ std::osyncstream(std::cerr) << "Completing Simulation job...\n"; }, nullptr);
+    auto phyj = jm.registerJob("Physics", [](void *){ std::osyncstream(std::cerr) << "Completing Physics job...\n"; }, nullptr);
+    auto occj = jm.registerJob("Occlusion", [](void *){ std::osyncstream(std::cerr) << "Completing Occlusion job...\n"; }, nullptr);
+    auto renj = jm.registerJob("Rendering", [](void *){ std::osyncstream(std::cerr) << "Completing Rendering job...\n"; }, nullptr);
+    auto winj = jm.registerJob("WindowPainting", [&done](void *){ done = true; std::osyncstream(std::cerr) << "Completing Window Painting job...\n"; }, nullptr);
 
-    auto task = [&log](unsigned id){ log << std::format("Thread #{}\n", id); };
+    jm.registerDependency(occj, simj);
+    jm.registerDependency(occj, phyj);
+    jm.registerDependency(renj, simj);
+    jm.registerDependency(renj, occj);
+    jm.registerDependency(winj, renj);
 
-    ThreadPool tp(5);
-    tp.run(task, 1)
-        .run(task, 2)
-        .run(task, 3)
-        .kill(2)
-        .run(task, 4)
-        .run(task, 5)
-        .run(task, 6)
-        .run(task, 7)
-        .add(1)
-        .run(task, 8)
-        .run(task, 9)
-        .run(task, 10)
-        .run(task, 11)
-        .run(task, 12)
-        .killAll();
+    std::fstream out("jobgraph.dot", std::fstream::out);
+    out << jm;
+    out.close();
+
+    jm.compile();
+    jm.runIteration();
 
     // ...
 

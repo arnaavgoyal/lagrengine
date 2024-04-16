@@ -6,8 +6,11 @@
 #include <thread>
 #include <type_traits>
 #include <cassert>
+#include <syncstream>
+#include <ostream>
 
 #include "utils/tsq.h"
+#include "engine.h"
 
 /**
  * A pool of threads that can be used to run any function
@@ -18,7 +21,7 @@
  * added.
  */
 class ThreadPool {
-private:
+public:
 
     struct Response {
         unsigned code;
@@ -85,6 +88,7 @@ public:
      * @return this threadpool instance for call chaining
      */
     ThreadPool &add(unsigned n) {
+        std::osyncstream(std::cerr) << std::format("ThreadPool@{} -- adding {} threads\n", (intptr_t)this, n);
         for (unsigned i = 0; i < n; i++) {
             std::thread t(runner, std::ref(commandQueue), std::ref(responseQueue));
             t.detach();
