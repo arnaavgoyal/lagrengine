@@ -1,6 +1,7 @@
 #include <chrono>
 #include <format>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <syncstream>
 #include <thread>
@@ -23,17 +24,33 @@ void engineMain() {
     bool done;
 
     JobManager jm;
-    auto simj = jm.registerJob("Simulation", [](void *){ std::osyncstream(std::cerr) << "Completing Simulation job...\n"; }, nullptr);
-    auto phyj = jm.registerJob("Physics", [](void *){ std::osyncstream(std::cerr) << "Completing Physics job...\n"; }, nullptr);
-    auto occj = jm.registerJob("Occlusion", [](void *){ std::osyncstream(std::cerr) << "Completing Occlusion job...\n"; }, nullptr);
-    auto renj = jm.registerJob("Rendering", [](void *){ std::osyncstream(std::cerr) << "Completing Rendering job...\n"; }, nullptr);
-    auto winj = jm.registerJob("WindowPainting", [&done](void *){ std::osyncstream(std::cerr) << "Completing Window Painting job...\n"; done = true; }, nullptr);
+    auto job_func = [](std::string name, void *){ std::osyncstream(std::cerr) << logNow() << "Doing Job '" << name << "'\n"; };
 
-    jm.registerDependency(occj, simj);
-    jm.registerDependency(occj, phyj);
-    jm.registerDependency(renj, simj);
-    jm.registerDependency(renj, occj);
-    jm.registerDependency(winj, renj);
+    auto inij = jm.registerJob("init", std::bind(job_func, "init", std::placeholders::_1), nullptr);
+    auto simj = jm.registerJob("simulation", std::bind(job_func, "simulation", std::placeholders::_1), nullptr);
+    auto pyj1 = jm.registerJob("physics1", std::bind(job_func, "physics1", std::placeholders::_1), nullptr);
+    auto pyj2 = jm.registerJob("physics2", std::bind(job_func, "physics2", std::placeholders::_1), nullptr);
+    auto pyj3 = jm.registerJob("physics3", std::bind(job_func, "physics3", std::placeholders::_1), nullptr);
+    auto pyj4 = jm.registerJob("physics4", std::bind(job_func, "physics4", std::placeholders::_1), nullptr);
+    auto pyjf = jm.registerJob("physicsF", std::bind(job_func, "physicsF", std::placeholders::_1), nullptr);
+    auto occj = jm.registerJob("occlusion", std::bind(job_func, "occlusion", std::placeholders::_1), nullptr);
+    auto renj = jm.registerJob("render", std::bind(job_func, "render", std::placeholders::_1), nullptr);
+    auto winj = jm.registerJob("window", std::bind(job_func, "window", std::placeholders::_1), nullptr);
+    auto resj = jm.registerJob("reset", std::bind(job_func, "reset", std::placeholders::_1), nullptr);
+    auto finj = jm.registerJob("finish", [&done](void *){ std::osyncstream(std::cerr) << logNow() << "Doing Job 'finish'\n"; done = true; }, nullptr);
+
+    jm.registerDependencies(inij, jm.graphRoot());
+    jm.registerDependencies(simj, inij);
+    jm.registerDependencies(pyj1, inij);
+    jm.registerDependencies(pyj2, inij);
+    jm.registerDependencies(pyj3, inij);
+    jm.registerDependencies(pyj4, inij);
+    jm.registerDependencies(pyjf, pyj1, pyj2, pyj3, pyj4);
+    jm.registerDependencies(occj, simj, pyjf);
+    jm.registerDependencies(renj, simj, occj);
+    jm.registerDependencies(winj, renj);
+    jm.registerDependencies(resj, renj, occj);
+    jm.registerDependencies(finj, resj, winj);
 
     std::fstream out("jobgraph.dot", std::fstream::out);
     out << jm;
