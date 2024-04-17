@@ -45,12 +45,12 @@ struct JobManager {
     std::mutex dep_mat_sync;
 
     static void rootDummyFuncImpl(void *) {
-        std::osyncstream(std::cerr) << "Running __root\n";
+        //std::osyncstream(std::cerr) << "Running __root\n";
     }
 
     JobManager() :
         compiled(false),
-        threads(4),
+        threads(1),
         dependency_matrix(nullptr) {
         
         root = &jobs["__root"];
@@ -60,7 +60,7 @@ struct JobManager {
     }
 
     ~JobManager() {
-        std::osyncstream(std::cerr) << "Destructing JobManager@" << this << "\n";
+        //std::osyncstream(std::cerr) << "Destructing JobManager@" << this << "\n";
         if (compiled) {
             delete[] dependency_matrix;
         }
@@ -115,37 +115,34 @@ struct JobManager {
         for (auto &[name, job] : jobs) {
             job.id = id_gen;
             dependency_matrix[id_gen] = job.dependencies.size();
-            std::osyncstream(std::cerr) << std::format("Job '{}': id={}, dm[id]={}\n", name, id_gen, dependency_matrix[id_gen]);
+            //std::osyncstream(std::cerr) << std::format("Job '{}': id={}, dm[id]={}\n", name, id_gen, dependency_matrix[id_gen]);
             id_gen++;
         }
 
         assert(dependency_matrix[root->id] == 0);
     }
 
-    static void jobRunner(JobManager *jm, Job *job) {
+    static void jobRunner(JobManager &jm, Job &job) {
 
-        std::osyncstream(std::cerr) << std::format("Starting job '{}'...\n", job->name);
+        //std::osyncstream(std::cerr) << std::format("Starting job '{}'...\n", job.name);
 
         // run job
-        std::invoke(job->entry, job->arg);
+        std::invoke(job.entry, job.arg);
 
-        std::osyncstream(std::cerr) << std::format("Finished job '{}'...\n", job->name);
+        //std::osyncstream(std::cerr) << std::format("Finished job '{}'...\n", job.name);
         
         //  update all dependents
-        for (Edge *edge : job->dependents) {
-            std::string &name = job->name;
-            Job *dep = edge->dependent;
-            std::string &dep_name = dep->name;
-            std::osyncstream(std::cerr) << std::format("{} -- Checking dependent '{}'...\n", job->name, edge->dependent->name);
+        for (Edge *edge : job.dependents) {
+            //std::osyncstream(std::cerr) << std::format("{} -- Checking dependent '{}'...\n", job.name, edge->dependent->name);
 
             // get entry from dependency matrix
-            unsigned *dep_entry = jm->dependency_matrix + edge->dependent->id;
+            unsigned *dep_entry = jm.dependency_matrix + edge->dependent->id;
 
-            jm->dep_mat_sync.lock();
+            jm.dep_mat_sync.lock();
 
             // >> CRITICAL SECTION
 
-            std::osyncstream(std::cerr) << std::format("{} -- CRITICAL SECTION start...\n", job->name);
+            //std::osyncstream(std::cerr) << std::format("{} -- CRITICAL SECTION start...\n", job.name);
 
             assert(*dep_entry > 0);
 
@@ -159,20 +156,19 @@ struct JobManager {
                 *dep_entry = edge->dependent->dependencies.size();
 
                 // run it
-                jm->threads.run(jobRunner, jm, edge->dependent);
+                jm.threads.run(jobRunner, jm, *edge->dependent);
             }
 
             // << CRITICAL SECTION
 
-            std::osyncstream(std::cerr) << std::format("{} -- CRITICAL SECTION end...\n", job->name);
+            //std::osyncstream(std::cerr) << std::format("{} -- CRITICAL SECTION end...\n", job.name);
 
-            jm->dep_mat_sync.unlock();
+            jm.dep_mat_sync.unlock();
         }
     }
 
     void runIteration() {
-        
-        threads.run(jobRunner, this, root);
+        threads.run(jobRunner, *this, *root);
     }
 
 };

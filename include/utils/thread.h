@@ -57,6 +57,12 @@ public:
     template <typename T>
     static T &&maybeRefWrap(T &&t) { return std::forward<T>(t); }
 
+    template <typename T, typename... Args>
+    static void compileErrorToShowTypeHelper(T &&t, Args &&... args) {
+        using X = typename T::nothing;
+        compileErrorToShowTypeHelper(std::forward<Args>(args)...);
+    }
+
 public:
 
     /**
@@ -73,6 +79,7 @@ public:
     template <typename Callable, typename... Args>
     requires std::invocable<Callable, Args...>
     ThreadPool &run(Callable &&func, Args &&... args) {
+        //compileErrorToShowTypeHelper(std::forward<Args>(args)...);
         Command cmd{
             Command::run,
             std::function<void ()>(std::bind(std::forward<Callable>(func), maybeRefWrap(std::forward<Args>(args))...))

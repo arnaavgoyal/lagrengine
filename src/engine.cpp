@@ -20,33 +20,37 @@ struct RenderEndEvent { };
 
 void engineMain() {
 
-    // ...
+    bool done;
+
+    JobManager jm;
+    auto simj = jm.registerJob("Simulation", [](void *){ std::osyncstream(std::cerr) << "Completing Simulation job...\n"; }, nullptr);
+    auto phyj = jm.registerJob("Physics", [](void *){ std::osyncstream(std::cerr) << "Completing Physics job...\n"; }, nullptr);
+    auto occj = jm.registerJob("Occlusion", [](void *){ std::osyncstream(std::cerr) << "Completing Occlusion job...\n"; }, nullptr);
+    auto renj = jm.registerJob("Rendering", [](void *){ std::osyncstream(std::cerr) << "Completing Rendering job...\n"; }, nullptr);
+    auto winj = jm.registerJob("WindowPainting", [&done](void *){ std::osyncstream(std::cerr) << "Completing Window Painting job...\n"; done = true; }, nullptr);
+
+    jm.registerDependency(occj, simj);
+    jm.registerDependency(occj, phyj);
+    jm.registerDependency(renj, simj);
+    jm.registerDependency(renj, occj);
+    jm.registerDependency(winj, renj);
+
+    std::fstream out("jobgraph.dot", std::fstream::out);
+    out << jm;
+    out.close();
+
+    jm.compile();
 
     while (true) {
 
-        // ...
-
-        SimulationStartEvent sse;
-        //event::trigger(sse);
-
-        // ...
-
-        SimulationEndEvent see;
-        //event::trigger(see);
+        done = false;
+        jm.runIteration();
+        while (!done) { }
+        std::osyncstream(std::cerr) << "All jobs done!\n";
 
         // ...
 
-        RenderStartEvent rse;
-        //event::trigger(rse);
-
-        // ...
-
-        RenderEndEvent ree;
-        //event::trigger(ree);
-
-        // ...
-
-        std::this_thread::sleep_for(std::chrono::seconds(20));
+        std::this_thread::sleep_for(std::chrono::seconds(10));
 
     }
 }
@@ -77,28 +81,6 @@ void engineInit() {
             std::osyncstream(std::cerr) << "Window destroy end!\n";
         }
     );
-
-    bool done = false;
-
-    JobManager jm;
-    auto simj = jm.registerJob("Simulation", [](void *){ std::osyncstream(std::cerr) << "Completing Simulation job...\n"; }, nullptr);
-    auto phyj = jm.registerJob("Physics", [](void *){ std::osyncstream(std::cerr) << "Completing Physics job...\n"; }, nullptr);
-    auto occj = jm.registerJob("Occlusion", [](void *){ std::osyncstream(std::cerr) << "Completing Occlusion job...\n"; }, nullptr);
-    auto renj = jm.registerJob("Rendering", [](void *){ std::osyncstream(std::cerr) << "Completing Rendering job...\n"; }, nullptr);
-    auto winj = jm.registerJob("WindowPainting", [&done](void *){ done = true; std::osyncstream(std::cerr) << "Completing Window Painting job...\n"; }, nullptr);
-
-    jm.registerDependency(occj, simj);
-    jm.registerDependency(occj, phyj);
-    jm.registerDependency(renj, simj);
-    jm.registerDependency(renj, occj);
-    jm.registerDependency(winj, renj);
-
-    std::fstream out("jobgraph.dot", std::fstream::out);
-    out << jm;
-    out.close();
-
-    jm.compile();
-    jm.runIteration();
 
     // ...
 
