@@ -1,16 +1,17 @@
 #ifndef UTILS_THREAD_H
 #define UTILS_THREAD_H
 
-#include <functional>
+#include <cassert>
 #include <concepts>
+#include <functional>
+#include <ostream>
+#include <syncstream>
 #include <thread>
 #include <type_traits>
-#include <cassert>
-#include <syncstream>
-#include <ostream>
 
-#include "utils/tsq.h"
 #include "engine.h"
+#include "utils/tsq.h"
+
 
 /**
  * A pool of threads that can be used to run any function

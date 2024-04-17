@@ -2,9 +2,9 @@
 #define UTILS_TSQ_H
 
 #include <deque>
+#include <limits.h>
 #include <mutex>
 #include <semaphore>
-#include <limits.h>
 
 template <typename T>
 class TSQ {

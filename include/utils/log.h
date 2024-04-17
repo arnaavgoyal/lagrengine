@@ -1,10 +1,10 @@
 #ifndef UTILS_LOG_H
 #define UTILS_LOG_H
 
-#include <ostream>
-#include <mutex>
-#include <string>
 #include <chrono>
+#include <mutex>
+#include <ostream>
+#include <string>
 #include <thread>
 
 #include "utils/tsq.h"

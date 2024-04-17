@@ -1,22 +1,21 @@
 #ifndef UTILS_JOB_H
 #define UTILS_JOB_H
 
-#include <string>
+#include <deque>
+#include <functional>
+#include <ostream>
 #include <list>
 #include <map>
-#include <iostream>
-#include <thread>
 #include <mutex>
-#include <deque>
-#include <concepts>
-#include <type_traits>
-#include <functional>
+#include <string>
 #include <syncstream>
+#include <thread>
+#include <type_traits>
 
-#include "utils/tsq.h"
-#include "utils/thread.h"
-#include "utils/log.h"
 #include "engine.h"
+#include "utils/log.h"
+#include "utils/thread.h"
+#include "utils/tsq.h"
 
 struct JobManager {
 
@@ -50,7 +49,7 @@ struct JobManager {
 
     JobManager() :
         compiled(false),
-        threads(1),
+        threads(5),
         dependency_matrix(nullptr) {
         
         root = &jobs["__root"];

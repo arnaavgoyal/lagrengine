@@ -1,16 +1,16 @@
-#include <thread>
 #include <cassert>
-#include <stdio.h>
-#include <iostream>
-#include <windows.h>
 #include <fcntl.h>
 #include <io.h>
+#include <iostream>
+#include <stdio.h>
+#include <thread>
+#include <windows.h>
 
 #include <glad/gl.h>
 
 #include "engine.h"
-#include "utils/shader.h"
 #include "utils/event.h"
+#include "utils/shader.h"
 
 #define WINDOW_CLASS_NAME "window"
 #define WINDOW_TITLE "Lagrengine"

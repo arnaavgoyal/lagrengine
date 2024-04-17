@@ -1,8 +1,8 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
+#include <syncstream>
 #include <windows.h>
-#include <iostream>
 
 #include "utils/log.h"
 

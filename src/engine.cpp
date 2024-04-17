@@ -1,17 +1,17 @@
-#include <iostream>
 #include <chrono>
-#include <thread>
-#include <fstream>
-#include <windows.h>
 #include <format>
+#include <fstream>
+#include <iostream>
 #include <syncstream>
+#include <thread>
+#include <windows.h>
 
 #include "engine.h"
 #include "utils/event.h"
 #include "utils/job.h"
 #include "utils/log.h"
-#include "utils/tsq.h"
 #include "utils/thread.h"
+#include "utils/tsq.h"
 
 struct SimulationStartEvent { };
 struct SimulationEndEvent { };

@@ -1,10 +1,10 @@
 #ifndef UTILS_EVENT_H
 #define UTILS_EVENT_H
 
-#include <list>
-#include <thread>
 #include <cassert>
 #include <functional>
+#include <list>
+#include <thread>
 
 namespace event {
 
