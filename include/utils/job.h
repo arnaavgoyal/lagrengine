@@ -17,7 +17,8 @@
 #include "utils/thread.h"
 #include "utils/tsq.h"
 
-struct JobManager {
+class JobManager {
+private:
 
     struct Job;
 
@@ -47,6 +48,8 @@ struct JobManager {
         //std::osyncstream(std::cerr) << "Running __root\n";
     }
 
+public:
+
     JobManager() :
         compiled(false),
         threads(5),
@@ -65,6 +68,8 @@ struct JobManager {
         }
     }
 
+    Job *graphRoot() { return root; }
+
     Job *findJob(std::string name) {
         return &jobs.at(name);
     }
@@ -75,26 +80,24 @@ struct JobManager {
         j.name = name;
         j.entry = ef;
         j.arg = arg;
-        registerDependency(&j, root);
         return &j;
     }
 
-    Edge *registerDependency(Job *dependent, Job *dependency) {
+    void registerDependencies(Job *) { return; }
+
+    template <typename... Args>
+    void registerDependencies(Job *dependent, Job *dependency, Args... args) {
         assert(!compiled);
         Edge *edge = &edges.emplace_back(Edge{dependent, dependency});
         dependent->dependencies.push_back(edge);
         dependency->dependents.push_back(edge);
-        return edge;
+        registerDependencies(dependent, args...);
     }
 
     std::ostream &dumpGraph(std::ostream &os) const {
         os << "digraph {\n";
         for (auto &edge : edges) {
-            os << "    " << edge.dependent->name << " -> " << edge.dependency->name;
-            if (edge.dependency == root) {
-                os << " [style=\"dashed\"]";
-            }
-            os << "\n";
+            os << "    " << edge.dependent->name << " -> " << edge.dependency->name << "\n";
         }
         os << "}\n";
         return os;
@@ -120,6 +123,8 @@ struct JobManager {
 
         assert(dependency_matrix[root->id] == 0);
     }
+
+private:
 
     static void jobRunner(JobManager &jm, Job &job) {
 
@@ -165,6 +170,8 @@ struct JobManager {
             jm.dep_mat_sync.unlock();
         }
     }
+
+public:
 
     void runIteration() {
         threads.run(jobRunner, *this, *root);

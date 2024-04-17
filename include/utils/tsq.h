@@ -8,7 +8,7 @@
 
 template <typename T>
 class TSQ {
-public:
+private:
     
     static constexpr unsigned max = UINT_MAX;
     std::deque<T> q;

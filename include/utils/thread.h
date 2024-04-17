@@ -22,7 +22,7 @@
  * added.
  */
 class ThreadPool {
-public:
+private:
 
     struct Response {
         unsigned code;
