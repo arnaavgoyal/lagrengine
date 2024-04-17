@@ -3,10 +3,10 @@
 
 #include <deque>
 #include <functional>
-#include <ostream>
 #include <list>
 #include <map>
 #include <mutex>
+#include <ostream>
 #include <string>
 #include <syncstream>
 #include <thread>
