@@ -30,6 +30,9 @@ ShaderProgram compileShaderProgram(std::string vertex_path,
         fprintf(stderr, "Fragment shader %s does not exist\n",
                 fragment_path.c_str());
 
+        // clean up
+        delete vertex_str;
+
         // zero on failure
         return 0;
     }
@@ -45,7 +48,6 @@ ShaderProgram compileShaderProgram(std::string vertex_path,
 
     // initialize the vertex shader
     unsigned int vertex_id = glCreateShader(GL_VERTEX_SHADER);
-    fprintf(stderr, "EE\n");
 
     char const *vertex_cstr = vertex_str->c_str();
     glShaderSource(vertex_id, 1, &vertex_cstr, 0);
@@ -57,6 +59,11 @@ ShaderProgram compileShaderProgram(std::string vertex_path,
         fprintf(stderr, "Failed to compile vertex shader: %s\n",
                 vertex_path.c_str());
         fprintf(stderr, "%s\n", infoLog);
+
+        // clean up
+        delete vertex_str;
+        delete fragment_str;
+        glDeleteShader(vertex_id);
 
         // return zero on failure
         return 0;
@@ -76,10 +83,15 @@ ShaderProgram compileShaderProgram(std::string vertex_path,
                 vertex_path.c_str());
         fprintf(stderr, "%s\n", infoLog);
 
+        // clean up
+        delete vertex_str;
+        delete fragment_str;
+        glDeleteShader(vertex_id);
+        glDeleteShader(fragment_id);
+
         // return zero on failure
         return 0;
     }
-    fprintf(stderr, "EE\n");
 
     // create and link the shader program
     ShaderProgram program_id = glCreateProgram();
@@ -93,6 +105,13 @@ ShaderProgram compileShaderProgram(std::string vertex_path,
         glGetProgramInfoLog(program_id, 1024, 0, infoLog);
         fprintf(stderr, "Failed to link shader program\n");
         fprintf(stderr, "%s\n", infoLog);
+
+        // clean up
+        delete vertex_str;
+        delete fragment_str;
+        glDeleteShader(vertex_id);
+        glDeleteShader(fragment_id);
+        glDeleteProgram(program_id);
 
         // return zero on failure
         return 0;

@@ -1,5 +1,6 @@
 build/
 *.exe
+engine.*
 .vscode
 *.dot
 *.svg

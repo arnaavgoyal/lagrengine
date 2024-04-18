@@ -7,6 +7,7 @@
 #include <windows.h>
 
 #include <glad/gl.h>
+#include <glad/wgl.h>
 
 #include "engine.h"
 #include "utils/event.h"
@@ -15,7 +16,24 @@
 #define WINDOW_CLASS_NAME "window"
 #define WINDOW_TITLE "Lagrengine"
 #define WINDOW_WIDTH 600
-#define WINDOW_HEIGHT 300
+#define WINDOW_HEIGHT 400
+
+/**
+ * I hate everything.
+ * @param mod the module to load from
+ * @param proc_name the procedure to load
+ * @return the loaded procedure
+ */
+FARPROC getOpenGLFunction(HMODULE mod, char const *proc_name) {
+    FARPROC proc = GetProcAddress(mod, proc_name);
+
+    if(proc)
+        return proc;
+
+    proc = wglGetProcAddress(proc_name);
+
+    return proc;
+}
 
 /**
  * Window procedure callback to handle messages
@@ -40,7 +58,7 @@ LRESULT CALLBACK windowCallback(HWND window, UINT msg, WPARAM wParam,
             break;
         case WM_NCDESTROY:
             event::trigger(WindowDestroyEndEvent{});
-            PostQuitMessage(0);
+            //PostQuitMessage(0);
             result = 0;
             break;
         default:
@@ -93,32 +111,43 @@ void setupCRTIO() {
 }
 
 /**
- * Creates a window
- * @param inst the current instance
- * @param title the title of the window
- * @param width the width of the client window
- * @param height the height of the client window
- * @return the created window, or NULL on failure
+ * Registers the window class. Notably this is different than window creation
+ * now since we need to actually create two windows and destroy one of them to
+ * initialize OpenGL properly. Windows is the best programming platform :)
+ * @return success or failure
  */
-HWND createWindow(HINSTANCE inst, char const *title, int width, int height) {
+bool registerWindowClass(HINSTANCE inst, char const *class_name) {
     // setup the window class
     WNDCLASSEXA window_class = {
         .cbSize = sizeof(WNDCLASSEX),
         .style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW,
         .lpfnWndProc = windowCallback,
         .hInstance = inst,
-        .lpszClassName = WINDOW_CLASS_NAME,
+        .lpszClassName = class_name,
     };
 
     // register the class
     if(!RegisterClassExA(&window_class)) {
-        fprintf(stderr, "Failed to register window class: %s\n",
-                WINDOW_CLASS_NAME);
+        fprintf(stderr, "Failed to register window class: %s\n", class_name);
 
-        // NULL on failure
-        return 0;
+        // false on failure
+        return false;
     }
 
+    return true;
+}
+
+/**
+ * Creates a window
+ * @param inst the program instance
+ * @param title the title of the window
+ * @param width the width of the client window
+ * @param height the height of the client window
+ * @param visible whether or not the window should be visible
+ * @return the created window, or NULL on failure
+ */
+HWND createWindow(HINSTANCE inst, char const *class_name, char const *title,
+        int width, int height, bool visible) {
     // we want to specify the size of the window in terms of the client rect,
     // not the total dimensions like windows does it
     RECT client_rect = {
@@ -128,10 +157,12 @@ HWND createWindow(HINSTANCE inst, char const *title, int width, int height) {
 
     AdjustWindowRect(&client_rect, WS_OVERLAPPEDWINDOW, false);
 
+    DWORD style = (visible ? WS_OVERLAPPEDWINDOW | WS_VISIBLE
+            : WS_OVERLAPPEDWINDOW);
+
     // create the window
-    HWND window = CreateWindowExA(0, WINDOW_CLASS_NAME, title,
-            WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT,
-            client_rect.right - client_rect.left,
+    HWND window = CreateWindowExA(0, class_name, title, style, CW_USEDEFAULT,
+            CW_USEDEFAULT, client_rect.right - client_rect.left,
             client_rect.bottom - client_rect.top, 0, 0, inst, 0);
 
     if(!window) {
@@ -151,19 +182,23 @@ HWND createWindow(HINSTANCE inst, char const *title, int width, int height) {
  * @param window the window to render onto
  * @return success or failure
  */
-BOOL setupOpenGL(HDC *dc, HGLRC *rc, HWND window) {
-    // get the device context for the current window
-    *dc = GetDC(window);
+BOOL setupOpenGL(HDC *dc, HGLRC *rc, HINSTANCE inst) {
+    // create a dummy window
+    HWND dummy_window = createWindow(inst, WINDOW_CLASS_NAME, WINDOW_TITLE,
+            WINDOW_WIDTH, WINDOW_HEIGHT, false);
 
-    if(!(*dc)) {
-        fprintf(stderr, "Failed to get DC\n");
+    // get the device context for the current window
+    HDC dummy_dc = GetDC(dummy_window);
+
+    if(!dummy_dc) {
+        fprintf(stderr, "Failed to get dummy DC\n");
 
         // false on failure
         return false;
     }
 
-    // setup the pixel format
-    PIXELFORMATDESCRIPTOR pfd = {
+    // setup the dummy pixel format
+    PIXELFORMATDESCRIPTOR dummy_pfd = {
         .nSize = sizeof(PIXELFORMATDESCRIPTOR),
         .nVersion = 1,
         .dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
@@ -175,23 +210,100 @@ BOOL setupOpenGL(HDC *dc, HGLRC *rc, HWND window) {
         .iLayerType = PFD_MAIN_PLANE,
     };
 
-    int pixel_format = ChoosePixelFormat(*dc, &pfd);
+    int dummy_pixel_format = ChoosePixelFormat(dummy_dc, &dummy_pfd);
 
-    if(!pixel_format) {
-        fprintf(stderr, "Failed to choose pixel format for the given DC\n");
+    if(!dummy_pixel_format) {
+        fprintf(stderr, "Failed to choose pixel format for the dummy DC\n");
 
         // false on failure
         return false;
     }
+
+    if(!SetPixelFormat(dummy_dc, dummy_pixel_format, &dummy_pfd)) {
+        fprintf(stderr, "Failed to set pixel format for the dummy DC\n");
+
+        // false on failure
+        return false;
+    }
+
+    // create a dummy rendering context
+    HGLRC dummy_rc = wglCreateContext(dummy_dc);
+
+    if(!dummy_rc) {
+        fprintf(stderr, "Failed to create a dummy rendering context\n");
+
+        // false on failure
+        return false;
+    }
+
+    if(!wglMakeCurrent(dummy_dc, dummy_rc)) {
+        fprintf(stderr, "Failed to make the dummy context current\n");
+
+        // false on failure
+        return false;
+    }
+
+    if(!gladLoadWGL(dummy_dc, (GLADloadfunc) wglGetProcAddress)) {
+        fprintf(stderr, "Failed to load WGL functions\n");
+
+        // false on failure
+        return false;
+    }
+
+    wglMakeCurrent(0, 0);
+    wglDeleteContext(dummy_rc);
+    DestroyWindow(dummy_window);
+
+    // create a window
+    HWND window = createWindow(inst, WINDOW_CLASS_NAME, WINDOW_TITLE,
+            WINDOW_WIDTH, WINDOW_HEIGHT, true);
+
+    int pixel_format_attribs[] = {
+        WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
+        WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
+        WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
+        WGL_ACCELERATION_ARB, WGL_FULL_ACCELERATION_ARB,
+        WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+        WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+        WGL_COLOR_BITS_ARB, 32,
+        WGL_DEPTH_BITS_ARB, 24,
+        WGL_STENCIL_BITS_ARB, 8,
+        0
+    };
+
+    *dc = GetDC(window);
+
+    int pixel_format;
+    unsigned int num_formats;
+    wglChoosePixelFormatARB(*dc, pixel_format_attribs, 0, 1, &pixel_format,
+            &num_formats);
+
+    if(!num_formats) {
+        fprintf(stderr, "Failed to choose the pixel format for the DC\n");
+
+        // false on failure
+        return false;
+    }
+
+    PIXELFORMATDESCRIPTOR pfd;
+    DescribePixelFormat(*dc, pixel_format, sizeof(pfd), &pfd);
 
     if(!SetPixelFormat(*dc, pixel_format, &pfd)) {
-        fprintf(stderr, "Failed to set pixel format for the given DC\n");
+        fprintf(stderr, "Failed to set pixel format for the DC\n");
 
         // false on failure
         return false;
     }
 
-    *rc = wglCreateContext(*dc);
+    int gl_attribs[] = {
+        WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+        WGL_CONTEXT_MINOR_VERSION_ARB, 6,
+        WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+        0
+    };
+
+    *rc = wglCreateContextAttribsARB(*dc, 0, gl_attribs);
+
     if(!(*rc)) {
         fprintf(stderr, "Failed to create a rendering context\n");
 
@@ -199,24 +311,18 @@ BOOL setupOpenGL(HDC *dc, HGLRC *rc, HWND window) {
         return false;
     }
 
-    if(!wglMakeCurrent(*dc, *rc)) {
-        fprintf(stderr, "Failed to make the context current\n");
-
-        // false on failure
-        return false;
-    }
+    wglMakeCurrent(*dc, *rc);
 
     HMODULE opengl = LoadLibraryA("opengl32.dll");
 
     if(!opengl) {
-        fprintf(stderr, "Failed to find opengl32.dll: %s\n", WINDOW_TITLE);
+        fprintf(stderr, "Failed to load OpenGL32.dll\n");
 
-        // false on failure
         return false;
     }
 
-    if(!gladLoadGLUserPtr((GLADuserptrloadfunc) GetProcAddress, opengl)) {
-        fprintf(stderr, "Failed to initialize GLAD: %s\n", WINDOW_TITLE);
+    if(!gladLoadGLUserPtr((GLADuserptrloadfunc) getOpenGLFunction, opengl)) {
+        fprintf(stderr, "Failed to initialize GLAD\n");
 
         // false on failure
         return false;
@@ -250,13 +356,12 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
     // start up the engine thread
     std::thread engine(engineInit);
 
-    // create a window
-    HWND window = createWindow(inst, WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT);
+    // register the window
+    if(!registerWindowClass(inst, WINDOW_CLASS_NAME)) {
+        fprintf(stderr, "Could not register window class %s\n, aborting",
+                WINDOW_CLASS_NAME);
 
-    if(!window) {
-        fprintf(stderr, "Could not create window %s, aborting\n", WINDOW_TITLE);
-
-        // Windows wants 0 returned if message loop is not reached
+        // return 0 since we did not reach message loop yet
         return 0;
     }
 
@@ -265,18 +370,16 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
     HGLRC rc;
 
     // opengl setup
-    if(!setupOpenGL(&dc, &rc, window)) {
+    if(!setupOpenGL(&dc, &rc, inst)) {
         fprintf(stderr, "Could not initialize OpenGL, aborting\n");
 
         // Windows wants 0 returned if message loop is not reached
         return 0;
     }
 
-    /** Code won't work yet, OpenGL needs some more setup
     // TODO this is a shader program test that should be removed later
     ShaderProgram program = compileShaderProgram("shaders/basic_vert.glsl",
             "shaders/basic_frag.glsl");
-
     if(!program) {
         fprintf(stderr, "Failed to create shader program\n");
 
@@ -307,7 +410,6 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
             (void*) (3 * sizeof(float)));
-            */
 
     // set the viewport to the client window size
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);

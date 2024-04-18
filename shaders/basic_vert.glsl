@@ -6,7 +6,7 @@ layout(location = 1) in vec3 attrib_color;
 out vec3 color;
 
 void main() {
-    out_color = attrib_color;
+    color = attrib_color;
     gl_Position = vec4(attrib_position, 1.0f);
 }
 
