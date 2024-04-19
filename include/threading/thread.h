@@ -4,6 +4,7 @@
 #include <cassert>
 #include <concepts>
 #include <functional>
+#include <iostream>
 #include <ostream>
 #include <syncstream>
 #include <thread>

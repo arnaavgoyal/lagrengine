@@ -10,8 +10,8 @@
 #include <glad/wgl.h>
 
 #include "engine.h"
+#include "graphics/shader.h"
 #include "utils/event.h"
-#include "utils/shader.h"
 
 #define WINDOW_CLASS_NAME "window"
 #define WINDOW_TITLE "Lagrengine"

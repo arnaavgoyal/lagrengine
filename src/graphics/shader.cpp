@@ -4,7 +4,7 @@
 
 #include <glad/gl.h>
 
-#include "utils/shader.h"
+#include "graphics/shader.h"
 
 ShaderProgram compileShaderProgram(std::string vertex_path, 
         std::string fragment_path) {
