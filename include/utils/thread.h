@@ -96,7 +96,7 @@ public:
      * @return this threadpool instance for call chaining
      */
     ThreadPool &add(unsigned n) {
-        std::osyncstream(std::cerr) << std::format("ThreadPool@{} -- adding {} threads\n", (intptr_t)this, n);
+        std::osyncstream(std::cerr) << "ThreadPool@" << this << " -- adding " << n << " threads\n";
         for (unsigned i = 0; i < n; i++) {
             std::thread t(runner, std::ref(commandQueue), std::ref(responseQueue));
             t.detach();
