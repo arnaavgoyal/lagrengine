@@ -7,10 +7,10 @@
 #include <windows.h>
 
 #include "engine.h"
+#include "threading/job.h"
+#include "threading/thread.h"
 #include "utils/event.h"
-#include "utils/job.h"
 #include "utils/log.h"
-#include "utils/thread.h"
 #include "utils/tsq.h"
 
 struct SimulationStartEvent { };
