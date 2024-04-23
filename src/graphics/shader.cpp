@@ -80,7 +80,7 @@ ShaderProgram compileShaderProgram(std::string vertex_path,
     if(!status) {
         glGetShaderInfoLog(fragment_id, 1024, 0, infoLog);
         fprintf(stderr, "Failed to compile fragment shader: %s\n",
-                vertex_path.c_str());
+                fragment_path.c_str());
         fprintf(stderr, "%s\n", infoLog);
 
         // clean up

@@ -11,7 +11,10 @@
 
 #include "engine.h"
 #include "graphics/graphics.h"
+#include "graphics/mesh.h"
 #include "graphics/shader.h"
+#include "graphics/texture.h"
+#include "graphics/vertex.h"
 #include "os/window.h"
 #include "utils/event.h"
 
@@ -155,14 +158,52 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
     graphics.useShaderProgram(program);
 
     // we just making a little triangle :)
-    float vertices[] = {
-        // position, color
-        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    Vertex v0 = {
+        {-0.5f, -0.5f, 0.0f},
+        {0.0f, 0.0f},
     };
+    Vertex v1 = {
+        {0.5f, -0.5f, 0.0f},
+        {1.0f, 0.0f},
+    };
+    Vertex v2 = {
+        {-0.5f, 0.5f, 0.0f},
+        {0.0f, 1.0f},
+    };
+    Vertex v3 = {
+        {0.5f, 0.5f, 0.0f},
+        {1.0f, 1.0f},
+    };
+    vertices.push_back(v0);
+    vertices.push_back(v1);
+    vertices.push_back(v2);
+    vertices.push_back(v3);
+    indices.push_back(0);
+    indices.push_back(1);
+    indices.push_back(2);
+    indices.push_back(1);
+    indices.push_back(2);
+    indices.push_back(3);
 
-    graphics.initPipeline(sizeof(vertices), vertices);
+    Texture t;
+    t.create("test.png");
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE, t.id);
+    glUniform1i(glGetUniformLocation(program, "tex"), 0);
+
+    // very basic VAO and VBO implementation
+    Mesh m;
+    m.create(vertices, indices);
+
+    // set the viewport to the client window size
+    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+    // set the clear color for the context
+	  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  
+    //graphics.initPipeline(sizeof(vertices), vertices);
 
     // necessary loop variables
     bool running = true;
@@ -183,7 +224,15 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
             }
         }
 
-        graphics.doDrawIteration();
+        // clear the buffer
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        m.draw();
+
+        // swap buffers
+        SwapBuffers(dc);
+      
+        //graphics.doDrawIteration();
     }
 
     graphics.destroy();
