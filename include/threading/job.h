@@ -13,8 +13,8 @@
 #include <type_traits>
 
 #include "engine.h"
+#include "threading/thread.h"
 #include "utils/log.h"
-#include "utils/thread.h"
 #include "utils/tsq.h"
 
 class JobManager {

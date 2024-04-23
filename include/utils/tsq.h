@@ -10,7 +10,7 @@ template <typename T>
 class TSQ {
 private:
     
-    static constexpr unsigned max = UINT_MAX;
+    static constexpr unsigned max = INT32_MAX;
     std::deque<T> q;
     std::mutex q_write;
     std::counting_semaphore<max> q_sema;

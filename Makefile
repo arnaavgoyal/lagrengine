@@ -6,7 +6,7 @@ SRCDIR := src
 INCDIR := include
 LIBDIR := lib
 OBJDIR := build
-LIBS   := user32 gdi32 gl wgl opengl32
+LIBS   := user32 gdi32 gl wgl opengl32 # order matters for g++
 FLAGS  := -Wall -g -std=c++20 -MMD
 
 # Processing
@@ -21,8 +21,6 @@ OBJDIRSREQ  := $(sort $(dir $(OBJECTS)))
 LIBFLAGS    := -L$(LIBDIR) $(addprefix -l,$(LIBS))
 #  Create the full compilation command (.cpp -> .o)
 COMPILECMD  := $(CC) $(FLAGS) -I$(INCDIR) -c
-#  Create the full build command (.o -> .exe)
-BUILDCMD    := $(CC) -g $(LIBFLAGS)
 
 # Rules
 
@@ -31,7 +29,7 @@ all: $(OBJDIRSREQ) $(EXE)
 
 #  Builds project exe from object files
 $(EXE): $(OBJECTS)
-	$(BUILDCMD) $^ -o $@
+	$(CC) -g $^ $(LIBFLAGS) -o $@
 
 #  Compiles object files from source files
 $(OBJECTS): $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
