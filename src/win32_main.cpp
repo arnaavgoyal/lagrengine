@@ -10,8 +10,11 @@
 #include <glad/wgl.h>
 
 #include "engine.h"
+#include "graphics/mesh.h"
+#include "graphics/shader.h"
+#include "graphics/texture.h"
+#include "graphics/vertex.h"
 #include "utils/event.h"
-#include "utils/shader.h"
 
 #define WINDOW_CLASS_NAME "window"
 #define WINDOW_TITLE "Lagrengine"
@@ -389,27 +392,44 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
     glUseProgram(program);
 
     // we just making a little triangle :)
-    float vertices[] = {
-        // position, color
-        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    Vertex v0 = {
+        {-0.5f, -0.5f, 0.0f},
+        {0.0f, 0.0f},
     };
+    Vertex v1 = {
+        {0.5f, -0.5f, 0.0f},
+        {1.0f, 0.0f},
+    };
+    Vertex v2 = {
+        {-0.5f, 0.5f, 0.0f},
+        {0.0f, 1.0f},
+    };
+    Vertex v3 = {
+        {0.5f, 0.5f, 0.0f},
+        {1.0f, 1.0f},
+    };
+    vertices.push_back(v0);
+    vertices.push_back(v1);
+    vertices.push_back(v2);
+    vertices.push_back(v3);
+    indices.push_back(0);
+    indices.push_back(1);
+    indices.push_back(2);
+    indices.push_back(1);
+    indices.push_back(2);
+    indices.push_back(3);
+
+    Texture t;
+    t.create("test.png");
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE, t.id);
+    glUniform1i(glGetUniformLocation(program, "tex"), 0);
 
     // very basic VAO and VBO implementation
-    unsigned int vao, vbo;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
-            GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
-            (void*) 0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
-            (void*) (3 * sizeof(float)));
+    Mesh m;
+    m.create(vertices, indices);
 
     // set the viewport to the client window size
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -439,8 +459,7 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         // clear the buffer
 		glClear(GL_COLOR_BUFFER_BIT);
 
-        // draw a triangle
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        m.draw();
 
         // swap buffers
         SwapBuffers(dc);
