@@ -272,14 +272,12 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
 
     Texture t;
     t.create("test.png");
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE, t.id);
-    glUniform1i(glGetUniformLocation(program, "tex"), 0);
+    std::vector<Texture> textures;
+    textures.push_back(t);
 
-    // very basic VAO and VBO implementation
     //std::ifstream objfile("cat.obj");
     Mesh m;
-    m.create(vertices, indices);
+    m.create(vertices, indices, textures);
     //m.createFromObj(objfile);
 
     // set the viewport to the client window size
@@ -366,7 +364,7 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         // clear the buffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        m.draw();
+        graphics.drawMesh(program, m);
 
         // swap buffers
         SwapBuffers(dc);

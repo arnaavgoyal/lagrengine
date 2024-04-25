@@ -3,6 +3,7 @@
 
 #include <windows.h>
 
+#include "graphics/mesh.h"
 #include "graphics/shader.h"
 
 struct OpenGLWrapper {
@@ -11,9 +12,11 @@ struct OpenGLWrapper {
     HGLRC *rc;
     HMODULE opengl;
 
-    int init(HWND *actual, HDC *dc, HGLRC *rc, HINSTANCE inst, char const *class_name,
-        char const *title, unsigned width, unsigned height);
+    int init(HWND *actual, HDC *dc, HGLRC *rc, HINSTANCE inst,
+            char const *class_name, char const *title, unsigned width,
+            unsigned height);
     int useShaderProgram(ShaderProgram shader);
+    void drawMesh(ShaderProgram shader, Mesh &mesh);
     int initPipeline(unsigned vertices_len, float *vertices);
     int doDrawIteration();
     void destroy() {

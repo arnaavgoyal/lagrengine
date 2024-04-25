@@ -1,10 +1,13 @@
 #ifndef GRAPHICS_MESH_H
 #define GRAPHICS_MESH_H
 
+#include <string>
 #include <vector>
 
 #include <glm/glm.hpp>
 
+#include "texture.h"
+#include "uniform.h"
 #include "vertex.h"
 
 // A basic component of a model
@@ -14,11 +17,15 @@ class Mesh {
     // OpenGL objects needed for the mesh
     unsigned int vao, vbo, ebo;
     unsigned int num_indices;
+    std::vector<Texture> textures;
+    std::vector<TextureUniform> texture_uniforms;
 
 public:
     void create(std::vector<Vertex> vertices,
-            std::vector<unsigned int> indices);
+            std::vector<unsigned int> indices, std::vector<Texture> textures);
     void draw();
+
+    friend struct OpenGLWrapper;
 };
 
 #endif // GRAPHICS_MESH_H

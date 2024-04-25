@@ -4,6 +4,7 @@
 #include <glad/wgl.h>
 
 #include "graphics/graphics.h"
+#include "graphics/mesh.h"
 #include "graphics/shader.h"
 #include "os/window.h"
 
@@ -187,6 +188,13 @@ int OpenGLWrapper::init(HWND *window, HDC *dc, HGLRC *rc, HINSTANCE inst, char c
 int OpenGLWrapper::useShaderProgram(ShaderProgram program) {
     glUseProgram(program);
     return 1;
+}
+
+void OpenGLWrapper::drawMesh(ShaderProgram program, Mesh &mesh) {
+    for(TextureUniform tu : mesh.texture_uniforms) {
+        glUniform1i(glGetUniformLocation(program, tu.name.c_str()), tu.value);
+    }
+    mesh.draw();
 }
 
 int OpenGLWrapper::initPipeline(unsigned vertices_len, float *vertices) {
