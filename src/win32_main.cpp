@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <thread>
 #include <windows.h>
+#include <windowsx.h>
 
 #include <glad/gl.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -30,6 +31,12 @@
 #define WINDOW_WIDTH 600
 #define WINDOW_HEIGHT 400
 
+static float const cam_speed = 0.05f;
+
+static glm::vec3 cam_pos(0.0f, 0.0f, 5.0f);
+static glm::vec3 cam_front(0.0f, 0.0f, -1.0f);
+static glm::vec3 cam_up(0.0f, 1.0f, 0.0f);
+
 /**
  * Window procedure callback to handle messages
  * @param window the window to handle the message for
@@ -40,8 +47,82 @@
  */
 LRESULT CALLBACK windowCallback(HWND window, UINT msg, WPARAM wParam,
         LPARAM lParam) {
+    static bool mouse_move_cam = false;
+    static int c_mouse_x = WINDOW_WIDTH / 2;
+    static int c_mouse_y = WINDOW_HEIGHT / 2;
     LRESULT result;
     switch(msg) {
+        case WM_CHAR: {
+            switch(wParam) {
+            case 'w':
+                cam_pos += cam_speed * cam_front;
+                break;
+            case 'a':
+                cam_pos -= glm::normalize(glm::cross(cam_front, cam_up)) * cam_speed;
+                break;
+            case 's':
+                cam_pos -= cam_speed * cam_front;
+                break;
+            case 'd':
+                cam_pos += glm::normalize(glm::cross(cam_front, cam_up)) * cam_speed;
+                break;
+            case ' ':
+                cam_pos += cam_speed * cam_up;
+                break;
+            default:
+                break;
+            }
+            result = 0;
+            break;
+        }
+        case WM_RBUTTONDOWN:
+            mouse_move_cam = true;
+            SetCapture(window);
+            c_mouse_x = GET_X_LPARAM(lParam);
+            c_mouse_y = GET_Y_LPARAM(lParam);
+            result = 0;
+            break;
+        case WM_RBUTTONUP:
+            mouse_move_cam = false;
+            ReleaseCapture();
+            result = 0;
+            break;
+        case WM_MOUSEMOVE: {
+            static float yaw = -90.0f;
+            static float pitch = 0.0f;
+            static float roll = 0.0f;
+            static float sens = 0.1f;
+
+            if (!mouse_move_cam) {
+                result = 0;
+                break;
+            }
+
+            int mouse_x = GET_X_LPARAM(lParam);
+            int mouse_y = GET_Y_LPARAM(lParam);
+
+            float off_x = mouse_x - c_mouse_x;
+            float off_y = c_mouse_y - mouse_y;
+
+            c_mouse_x = mouse_x;
+            c_mouse_y = mouse_y;
+
+            off_x *= sens;
+            off_y *= sens;
+
+            yaw += off_x;
+            pitch += off_y;
+
+            glm::vec3 dir(
+                glm::cos(glm::radians(yaw)) * glm::cos(glm::radians(pitch)),
+                glm::sin(glm::radians(pitch)),
+                glm::sin(glm::radians(yaw)) * glm::cos(glm::radians(pitch))
+            );
+            cam_front = glm::normalize(dir);
+            
+            result = 0;
+            break;
+        }
         case WM_CLOSE:
             event::trigger(WindowCloseRequestedEvent{});
             PostQuitMessage(0);
@@ -304,6 +385,7 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         GL_FALSE,
         glm::value_ptr(proj_tr_mat)
     );
+
   
     //graphics.initPipeline(sizeof(vertices), vertices);
 
@@ -341,10 +423,10 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
             glm::vec3(1.0f, 0.5f, 0.0f)
         );
 
-        glm::mat4 view_tr_mat(1.0f);
-        view_tr_mat = glm::translate(
-            view_tr_mat,
-            glm::vec3(0.0f, 0.0f, -3.0f)
+        glm::mat4 view_tr_mat = glm::lookAt(
+            cam_pos,
+            cam_pos + cam_front,
+            cam_up
         );
 
         glUniformMatrix4fv(
