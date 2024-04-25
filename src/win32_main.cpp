@@ -36,6 +36,7 @@ static float const cam_speed = 0.05f;
 static glm::vec3 cam_pos(0.0f, 0.0f, 5.0f);
 static glm::vec3 cam_front(0.0f, 0.0f, -1.0f);
 static glm::vec3 cam_up(0.0f, 1.0f, 0.0f);
+static float cam_fov = 45.0f;
 
 /**
  * Window procedure callback to handle messages
@@ -119,7 +120,23 @@ LRESULT CALLBACK windowCallback(HWND window, UINT msg, WPARAM wParam,
                 glm::sin(glm::radians(yaw)) * glm::cos(glm::radians(pitch))
             );
             cam_front = glm::normalize(dir);
+
+            result = 0;
+            break;
+        }
+        case WM_MOUSEWHEEL: {
+            short delta = GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA;
             
+            // towards user / downwards
+            cam_fov -= (float)delta;
+
+            if (cam_fov < 1.0f) {
+                cam_fov = 1.0f;
+            }
+            else if (cam_fov > 89.0f) {
+                cam_fov = 89.0f;
+            }
+
             result = 0;
             break;
         }
@@ -372,21 +389,6 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
 
     glUseProgram(program);
 
-    glm::mat4 proj_tr_mat = glm::perspective(
-        glm::radians(45.0f),
-        (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT,
-        0.1f,
-        100.0f
-    );
-
-    glUniformMatrix4fv(
-        glGetUniformLocation(program, "proj"),
-        1,
-        GL_FALSE,
-        glm::value_ptr(proj_tr_mat)
-    );
-
-  
     //graphics.initPipeline(sizeof(vertices), vertices);
 
     // necessary loop variables
@@ -429,6 +431,13 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
             cam_up
         );
 
+        glm::mat4 proj_tr_mat = glm::perspective(
+            glm::radians(cam_fov),
+            (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT,
+            0.1f,
+            100.0f
+        );
+
         glUniformMatrix4fv(
             glGetUniformLocation(program, "model"),
             1,
@@ -441,6 +450,13 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
             1,
             GL_FALSE,
             glm::value_ptr(view_tr_mat)
+        );
+
+        glUniformMatrix4fv(
+            glGetUniformLocation(program, "proj"),
+            1,
+            GL_FALSE,
+            glm::value_ptr(proj_tr_mat)
         );
 
         // clear the buffer
