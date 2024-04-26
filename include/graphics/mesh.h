@@ -13,7 +13,7 @@
 // A basic component of a model
 // If we imagine a knight, there would likely be meshes for the head, the body,
 // the arms, the legs, the sword, the shield, the helmet, ...
-class Mesh {
+struct Mesh {
     // OpenGL objects needed for the mesh
     unsigned int vao, vbo, ebo;
     unsigned int num_indices;

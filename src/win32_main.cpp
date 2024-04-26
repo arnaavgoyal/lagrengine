@@ -20,6 +20,7 @@
 #include "engine.h"
 #include "graphics/graphics.h"
 #include "graphics/mesh.h"
+#include "graphics/scene.h"
 #include "graphics/shader.h"
 #include "graphics/texture.h"
 #include "graphics/vertex.h"
@@ -378,16 +379,16 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
     m.create(vertices, indices, textures);
     //m.createFromObj(objfile);
 
-    // set the viewport to the client window size
-    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-
     // set the clear color for the context
     glClearColor(0.0f, 0.2f, 0.8f, 1.0f);
 
     // enable depth
     glEnable(GL_DEPTH_TEST);
 
-    glUseProgram(program);
+    Scene scene;
+    Camera cam;
+    cam.create(WINDOW_WIDTH, WINDOW_HEIGHT, cam_pos, cam_front, cam_up, 45.0f);
+    SceneObject &cube = scene.addObject(m, glm::mat4(1.0f), program);
 
     //graphics.initPipeline(sizeof(vertices), vertices);
 
@@ -417,52 +418,22 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
             = std::chrono::system_clock::now().time_since_epoch()
             / std::chrono::milliseconds(10)
             - init_time;
-
-        glm::mat4 model_tr_mat(1.0f);
-        model_tr_mat = glm::rotate(
-            model_tr_mat,
+        
+        cube.world = glm::rotate(
+            glm::mat4(1.0f),
             (float)time_diff * glm::radians(1.0f),
             glm::vec3(1.0f, 0.5f, 0.0f)
         );
 
-        glm::mat4 view_tr_mat = glm::lookAt(
-            cam_pos,
-            cam_pos + cam_front,
-            cam_up
-        );
-
-        glm::mat4 proj_tr_mat = glm::perspective(
-            glm::radians(cam_fov),
-            (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT,
-            0.1f,
-            100.0f
-        );
-
-        glUniformMatrix4fv(
-            glGetUniformLocation(program, "model"),
-            1,
-            GL_FALSE,
-            glm::value_ptr(model_tr_mat)
-        );
-
-        glUniformMatrix4fv(
-            glGetUniformLocation(program, "view"),
-            1,
-            GL_FALSE,
-            glm::value_ptr(view_tr_mat)
-        );
-
-        glUniformMatrix4fv(
-            glGetUniformLocation(program, "proj"),
-            1,
-            GL_FALSE,
-            glm::value_ptr(proj_tr_mat)
-        );
+        cam.pos = cam_pos;
+        cam.front = cam_front;
+        cam.up = cam_up;
+        cam.fov = cam_fov;
 
         // clear the buffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        graphics.drawMesh(program, m);
+        scene.draw(cam);
 
         // swap buffers
         SwapBuffers(dc);
