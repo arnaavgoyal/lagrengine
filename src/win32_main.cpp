@@ -19,6 +19,7 @@
 #include "engine.h"
 #include "graphics/graphics.h"
 #include "graphics/mesh.h"
+#include "graphics/model.h"
 #include "graphics/shader.h"
 #include "graphics/texture.h"
 #include "graphics/vertex.h"
@@ -154,9 +155,8 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
     }
 
     // TODO this is a shader program test that should be removed later
-    ShaderProgram program = compileShaderProgram("shaders/basic_vert.glsl",
-            "shaders/basic_frag.glsl");
-    if(!program) {
+    ShaderProgram program;
+    if(!program.create("shaders/basic_vert.glsl", "shaders/basic_frag.glsl")) {
         fprintf(stderr, "Failed to create shader program\n");
 
         return 0;
@@ -164,132 +164,8 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
 
     graphics.useShaderProgram(program);
 
-    // we just making a BIG CUBE :D
-    //
-    //       5 - - - 4
-    //    /  |    /  |
-    // 1 - - - 0     |
-    // |     6 | - - 7
-    // |       |  /
-    // 2 - - - 3
-    //
-    // 0 (+, +, +)
-    // 1 (-, +, +)
-    // 2 (-, -, +)
-    // 3 (+, -, +)
-    // 4 (+, +, -)
-    // 5 (-, +, -)
-    // 6 (-, -, -)
-    // 7 (+, -, -)
-    Vertex raw_vertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
-
-    unsigned raw_indices[] = {
-         0,  1,  2,  3,  4,  5,
-         6,  7,  8,  9, 10, 11,
-        12, 13, 14, 15, 16, 17,
-        18, 19, 20, 21, 22, 23,
-        24, 25, 26, 27, 28, 29,
-        30, 31, 32, 33, 34, 35
-    };
-
-    std::vector<Vertex> vertices;
-    std::vector<unsigned> indices;
-    vertices.assign(raw_vertices, raw_vertices + sizeof(raw_vertices) / sizeof(Vertex));
-    indices.assign(raw_indices, raw_indices + sizeof(raw_indices) / sizeof(unsigned));
-
-    // // we just making a little triangle :)
-    // std::vector<Vertex> vertices;
-    // std::vector<unsigned int> indices;
-    // Vertex v0 = {
-    //     {-0.5f, -0.5f, 0.0f},
-    //     {0.0f, 0.0f},
-    // };
-    // Vertex v1 = {
-    //     {0.5f, -0.5f, 0.0f},
-    //     {1.0f, 0.0f},
-    // };
-    // Vertex v2 = {
-    //     {-0.5f, 0.5f, 0.0f},
-    //     {0.0f, 1.0f},
-    // };
-    // Vertex v3 = {
-    //     {0.5f, 0.5f, 0.0f},
-    //     {1.0f, 1.0f},
-    // };
-    // vertices.push_back(v0);
-    // vertices.push_back(v1);
-    // vertices.push_back(v2);
-    // vertices.push_back(v3);
-    // indices.push_back(0);
-    // indices.push_back(1);
-    // indices.push_back(2);
-    // indices.push_back(1);
-    // indices.push_back(2);
-    // indices.push_back(3);
-
-
-    Texture t;
-    t.create("test.png");
-    std::vector<Texture> textures;
-    textures.push_back(t);
-
-    //std::ifstream objfile("cat.obj");
-    Mesh m;
-    m.create(vertices, indices, textures);
-    //m.createFromObj(objfile);
-
-    // set the viewport to the client window size
-    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-    // set the clear color for the context
-    glClearColor(0.0f, 0.2f, 0.8f, 1.0f);
-
     // enable depth
     glEnable(GL_DEPTH_TEST);
-
-    glUseProgram(program);
 
     glm::mat4 proj_tr_mat = glm::perspective(
         glm::radians(45.0f),
@@ -299,13 +175,15 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
     );
 
     glUniformMatrix4fv(
-        glGetUniformLocation(program, "proj"),
+        glGetUniformLocation(program.id, "proj"),
         1,
         GL_FALSE,
         glm::value_ptr(proj_tr_mat)
     );
   
     //graphics.initPipeline(sizeof(vertices), vertices);
+    Model m;
+    m.create("elephant/Mesh_Elephant.obj");
 
     // necessary loop variables
     bool running = true;
@@ -335,6 +213,7 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
             - init_time;
 
         glm::mat4 model_tr_mat(1.0f);
+        model_tr_mat = glm::scale(model_tr_mat, glm::vec3(0.01f, 0.01f, 0.01f));
         model_tr_mat = glm::rotate(
             model_tr_mat,
             (float)time_diff * glm::radians(1.0f),
@@ -348,14 +227,14 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         );
 
         glUniformMatrix4fv(
-            glGetUniformLocation(program, "model"),
+            glGetUniformLocation(program.id, "model"),
             1,
             GL_FALSE,
             glm::value_ptr(model_tr_mat)
         );
 
         glUniformMatrix4fv(
-            glGetUniformLocation(program, "view"),
+            glGetUniformLocation(program.id, "view"),
             1,
             GL_FALSE,
             glm::value_ptr(view_tr_mat)
@@ -364,7 +243,7 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         // clear the buffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        graphics.drawMesh(program, m);
+        graphics.drawModel(program, m);
 
         // swap buffers
         SwapBuffers(dc);
@@ -372,7 +251,10 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         //graphics.doDrawIteration();
     }
 
+    // clean everything up
     graphics.destroy();
+    m.destroy();
+    program.destroy();
 
     // Windows wants the wParam of the WM_QUIT message returned, we can choose
     // to disregard this

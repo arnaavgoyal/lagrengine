@@ -1,5 +1,6 @@
 #version 460 core
 
+in vec3 normal;
 in vec2 uv;
 
 out vec4 frag_color;

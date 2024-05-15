@@ -4,6 +4,7 @@
 #include <windows.h>
 
 #include "graphics/mesh.h"
+#include "graphics/model.h"
 #include "graphics/shader.h"
 
 struct OpenGLWrapper {
@@ -17,6 +18,7 @@ struct OpenGLWrapper {
             unsigned height);
     int useShaderProgram(ShaderProgram shader);
     void drawMesh(ShaderProgram shader, Mesh &mesh);
+    void drawModel(ShaderProgram shader, Model &mesh);
     int initPipeline(unsigned vertices_len, float *vertices);
     int doDrawIteration();
     void destroy() {

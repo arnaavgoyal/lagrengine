@@ -6,8 +6,9 @@
 // Contains all the necessary information in a vertex.
 // Contains its position vector, uv coords, and more stuff later
 struct Vertex {
-    float position[3];
-    float uv_coords[2];
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec2 uv;
 };
 
 #endif // GRAPHICS_VERTEX_H

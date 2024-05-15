@@ -3,13 +3,13 @@
 
 #include <glad/gl.h>
 
+#include "graphics/material.h"
 #include "graphics/mesh.h"
 #include "graphics/texture.h"
-#include "graphics/uniform.h"
 #include "graphics/vertex.h"
 
 void Mesh::create(std::vector<Vertex> vertices,
-        std::vector<unsigned int> indices, std::vector<Texture> textures) {
+        std::vector<unsigned int> indices, std::vector<Material> materials) {
     num_indices = indices.size();
 
     glGenVertexArrays(1, &vao);
@@ -27,32 +27,35 @@ void Mesh::create(std::vector<Vertex> vertices,
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
             (void*) 0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
             (void*) (3 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+            (void*) (6 * sizeof(float)));
 
-    this->textures = textures;
-
-    for(int i = 0; i < textures.size(); i++) {
-        std::string number = std::to_string(i);
-        std::string name = "texture";
-        std::string uniform_name = name + number;
-
-        TextureUniform tu;
-        tu.name = uniform_name;
-        tu.value = i;
-
-        texture_uniforms.push_back(tu);
-    }
+    this->materials = materials;
 }
 
 void Mesh::draw() {
     glBindVertexArray(vao);
 
-    for(int i = 0; i < texture_uniforms.size(); i++) {
+    for(int i = 0; i < materials.size(); i += 3) {
         glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE, textures[i].id);
+        glBindTexture(GL_TEXTURE, materials[i].ambient.id);
+        glActiveTexture(GL_TEXTURE0 + i + 1);
+        glBindTexture(GL_TEXTURE, materials[i].diffuse.id);
+        glActiveTexture(GL_TEXTURE0 + i + 2);
+        glBindTexture(GL_TEXTURE, materials[i].specular.id);
     }
 
     glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
+}
+
+void Mesh::destroy() {
+    for(int i = 0; i < materials.size(); i++) {
+        materials[i].ambient.destroy();
+        materials[i].diffuse.destroy();
+        materials[i].specular.destroy();
+    }
 }
