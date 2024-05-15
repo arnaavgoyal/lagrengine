@@ -239,15 +239,10 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         return 0;
     }
 
-    // context variables (device and rendering)
-    HDC dc;
-    HGLRC rc;
-    HWND window;
-
     // opengl setup
     OpenGLWrapper graphics;
-    if(!graphics.init(&window, &dc, &rc, inst, WINDOW_CLASS_NAME,
-        WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT)) {
+    if(!graphics.init(inst, WINDOW_CLASS_NAME, WINDOW_TITLE, WINDOW_WIDTH,
+                WINDOW_HEIGHT)) {
         fprintf(stderr, "Could not initialize OpenGL, aborting\n");
 
         // Windows wants 0 returned if message loop is not reached
@@ -327,7 +322,7 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         scene.draw(cam);
 
         // swap buffers
-        SwapBuffers(dc);
+        SwapBuffers(graphics.dc);
       
         //graphics.doDrawIteration();
     }

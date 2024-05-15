@@ -3,7 +3,11 @@
 
 #include <string>
 
+/**
+ * Represents an OpenGL texture
+ */
 struct Texture {
+    /** the id of the texture */
     unsigned int id;
 
     bool create(std::string path);
