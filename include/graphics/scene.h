@@ -14,7 +14,7 @@
 #include "graphics/shader.h"
 
 struct SceneObject {
-    Mesh mesh;
+    Model model;
     glm::mat4 world;
 };
 
@@ -23,11 +23,11 @@ struct Scene {
     std::list<SceneObject *> objects;
     std::map<ShaderProgram, std::list<SceneObject>> shader_obj_map;
 
-    SceneObject &addObject(Mesh m, glm::mat4 wld, ShaderProgram s) {
+    SceneObject &addObject(Model m, glm::mat4 wld, ShaderProgram s) {
         decltype(shader_obj_map)::iterator iter;
         std::list<SceneObject> &list = shader_obj_map[s];
         SceneObject &so = list.emplace_back();
-        so = { m, wld };
+        so = {m, wld};
         objects.push_back(&so);
         return so;
     }
@@ -54,16 +54,16 @@ struct Scene {
 
         for (auto &[shader, objs] : shader_obj_map) {
 
-            glUseProgram(shader);
+            glUseProgram(shader.id);
                 glUniformMatrix4fv(
-                glGetUniformLocation(shader, "view"),
+                glGetUniformLocation(shader.id, "view"),
                 1,
                 GL_FALSE,
                 glm::value_ptr(view)
             );
 
             glUniformMatrix4fv(
-                glGetUniformLocation(shader, "proj"),
+                glGetUniformLocation(shader.id, "proj"),
                 1,
                 GL_FALSE,
                 glm::value_ptr(proj)
@@ -72,17 +72,13 @@ struct Scene {
             for (auto &obj : objs) {
                 
                 glUniformMatrix4fv(
-                    glGetUniformLocation(shader, "model"),
+                    glGetUniformLocation(shader.id, "model"),
                     1,
                     GL_FALSE,
                     glm::value_ptr(obj.world)
                 );
 
-                for(TextureUniform tu : obj.mesh.texture_uniforms) {
-                    glUniform1i(glGetUniformLocation(shader, tu.name.c_str()), tu.value);
-                }
-
-                obj.mesh.draw();
+                obj.model.draw(shader);
             }
         }
     }

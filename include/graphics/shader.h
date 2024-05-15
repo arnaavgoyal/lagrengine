@@ -30,7 +30,11 @@ struct ShaderProgram {
      * @param value the value to set the uniform too
      * @return whether or not the function succeeded
      */
-    bool setUniformInt(std::string name, int value);
+    bool setUniformInt(std::string name, int value) const;
+
+    bool operator<(ShaderProgram other) const {
+        return this->id < other.id;
+    }
 };
 
 #endif // UTILS_SHADER_H

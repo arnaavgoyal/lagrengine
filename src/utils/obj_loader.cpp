@@ -213,11 +213,11 @@ bool loadObj(std::vector<Mesh> &meshes, std::string path) {
             }
 
             int face_size = face.size();
-            std::vector<Vertex> face = face;
+            std::vector<Vertex> face_left = face;
 
-            while(polygon_left.size() > 2) {
-                for(int vi = 0; vi < polygon_left.size(); vi++) {
-                    if(isEar(polygon_left, normal, vi)) {
+            while(face_left.size() > 2) {
+                for(int vi = 0; vi < face_left.size(); vi++) {
+                    if(isEar(face_left, normal, vi)) {
                         int pvi = (vi == 0) ? (face_size - 1) : (vi - 1);
                         int nvi = (vi == face_size - 1) ? (0) : (vi + 1);
 
@@ -232,7 +232,7 @@ bool loadObj(std::vector<Mesh> &meshes, std::string path) {
                             }
                         }
 
-                        polygon_left.erase(polygon_left.begin() + vi);
+                        face_left.erase(face_left.begin() + vi);
 
                         break;
                     }
