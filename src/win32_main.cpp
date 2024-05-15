@@ -20,6 +20,7 @@
 #include "engine.h"
 #include "graphics/graphics.h"
 #include "graphics/mesh.h"
+#include "graphics/model.h"
 #include "graphics/scene.h"
 #include "graphics/shader.h"
 #include "graphics/texture.h"
@@ -253,9 +254,8 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
     }
 
     // TODO this is a shader program test that should be removed later
-    ShaderProgram program = compileShaderProgram("shaders/basic_vert.glsl",
-            "shaders/basic_frag.glsl");
-    if(!program) {
+    ShaderProgram program;
+    if(!program.create("shaders/basic_vert.glsl", "shaders/basic_frag.glsl")) {
         fprintf(stderr, "Failed to create shader program\n");
 
         return 0;
@@ -390,7 +390,8 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
     cam.create(WINDOW_WIDTH, WINDOW_HEIGHT, cam_pos, cam_front, cam_up, 45.0f);
     SceneObject &cube = scene.addObject(m, glm::mat4(1.0f), program);
 
-    //graphics.initPipeline(sizeof(vertices), vertices);
+    Model m;
+    m.create("elephant/Mesh_Elephant.obj");
 
     // necessary loop variables
     bool running = true;
@@ -418,11 +419,36 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
             = std::chrono::system_clock::now().time_since_epoch()
             / std::chrono::milliseconds(10)
             - init_time;
-        
+
+        glm::mat4 model_tr_mat(1.0f);
+        model_tr_mat = glm::scale(model_tr_mat, glm::vec3(0.01f, 0.01f, 0.01f));
+        model_tr_mat = glm::rotate(
+            model_tr_mat,
+
         cube.world = glm::rotate(
             glm::mat4(1.0f),
             (float)time_diff * glm::radians(1.0f),
             glm::vec3(1.0f, 0.5f, 0.0f)
+        );
+   
+        glm::mat4 view_tr_mat(1.0f);
+        view_tr_mat = glm::translate(
+            view_tr_mat,
+            glm::vec3(0.0f, 0.0f, -3.0f)
+        );
+
+        glUniformMatrix4fv(
+            glGetUniformLocation(program.id, "model"),
+            1,
+            GL_FALSE,
+            glm::value_ptr(model_tr_mat)
+        );
+
+        glUniformMatrix4fv(
+            glGetUniformLocation(program.id, "view"),
+            1,
+            GL_FALSE,
+            glm::value_ptr(view_tr_mat)
         );
 
         cam.pos = cam_pos;
@@ -433,6 +459,7 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         // clear the buffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        graphics.drawModel(program, m);
         scene.draw(cam);
 
         // swap buffers
@@ -441,7 +468,10 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         //graphics.doDrawIteration();
     }
 
+    // clean everything up
     graphics.destroy();
+    m.destroy();
+    program.destroy();
 
     // Windows wants the wParam of the WM_QUIT message returned, we can choose
     // to disregard this

@@ -3,6 +3,8 @@
 #include <glad/gl.h>
 #include <glad/wgl.h>
 
+#include <stb/stb_image.h>
+
 #include "graphics/graphics.h"
 #include "graphics/mesh.h"
 #include "graphics/shader.h"
@@ -181,20 +183,31 @@ int OpenGLWrapper::init(HWND *window, HDC *dc, HGLRC *rc, HINSTANCE inst, char c
     this->dc = dc;
     this->rc = rc;
 
+    // set stb image to orient images properly
+    stbi_set_flip_vertically_on_load(true);
+
     // true on success
     return true;
 }
 
 int OpenGLWrapper::useShaderProgram(ShaderProgram program) {
-    glUseProgram(program);
+    glUseProgram(program.id);
     return 1;
 }
 
 void OpenGLWrapper::drawMesh(ShaderProgram program, Mesh &mesh) {
-    for(TextureUniform tu : mesh.texture_uniforms) {
-        glUniform1i(glGetUniformLocation(program, tu.name.c_str()), tu.value);
+    for(int i = 0; i < mesh.materials.size() * 3; i += 3) {
+        program.setUniformInt("ambient", i);
+        program.setUniformInt("diffuse", i + 1);
+        program.setUniformInt("specular", i + 2);
     }
     mesh.draw();
+}
+
+void OpenGLWrapper::drawModel(ShaderProgram program, Model &model) {
+    for(Mesh mesh : model.meshes) {
+        drawMesh(program, mesh);
+    }
 }
 
 int OpenGLWrapper::initPipeline(unsigned vertices_len, float *vertices) {

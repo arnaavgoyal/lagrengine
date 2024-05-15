@@ -4,11 +4,9 @@
 #include <string>
 #include <vector>
 
-#include <glm/glm.hpp>
-
-#include "texture.h"
-#include "uniform.h"
-#include "vertex.h"
+#include "graphics/material.h"
+#include "graphics/texture.h"
+#include "graphics/vertex.h"
 
 // A basic component of a model
 // If we imagine a knight, there would likely be meshes for the head, the body,
@@ -17,15 +15,14 @@ struct Mesh {
     // OpenGL objects needed for the mesh
     unsigned int vao, vbo, ebo;
     unsigned int num_indices;
-    std::vector<Texture> textures;
-    std::vector<TextureUniform> texture_uniforms;
+    std::vector<Material> materials;
 
-public:
     void create(std::vector<Vertex> vertices,
-            std::vector<unsigned int> indices, std::vector<Texture> textures);
-    void draw();
+            std::vector<unsigned int> indices,
+            std::vector<Material> materials);
+    void destroy();
 
-    friend struct OpenGLWrapper;
+    void draw();
 };
 
 #endif // GRAPHICS_MESH_H
