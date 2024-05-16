@@ -32,24 +32,12 @@ struct Scene {
         return so;
     }
 
-    void draw(Camera cam) {
-
-        // set the viewport
-        glViewport(0, 0, cam.width, cam.height);
-
+    void draw(Camera &cam) {
         // calculate view matrix
         glm::mat4 view = glm::lookAt(
             cam.pos,
             cam.pos + cam.front,
             cam.up
-        );
-
-        // calculate proj matrix
-        glm::mat4 proj = glm::perspective(
-            glm::radians(cam.fov),
-            (float)cam.width / (float)cam.height,
-            0.1f,
-            100.0f
         );
 
         for (auto &[shader, objs] : shader_obj_map) {
@@ -66,7 +54,7 @@ struct Scene {
                 glGetUniformLocation(shader.id, "proj"),
                 1,
                 GL_FALSE,
-                glm::value_ptr(proj)
+                glm::value_ptr(cam.proj)
             );
 
             for (auto &obj : objs) {

@@ -1,5 +1,5 @@
-#ifndef GRAPHICS_H
-#define GRAPHICS_H
+#ifndef GRAPHICS_GRAPHICS_H
+#define GRAPHICS_GRAPHICS_H
 
 #include <windows.h>
 
@@ -29,6 +29,7 @@ struct OpenGLWrapper {
      */
     bool init(HINSTANCE inst, char const *class_name, char const *title,
             unsigned width, unsigned height);
+
     int useShaderProgram(ShaderProgram shader);
     void drawMesh(ShaderProgram shader, Mesh &mesh);
     void drawModel(ShaderProgram shader, Model &mesh);
@@ -42,4 +43,4 @@ struct OpenGLWrapper {
     }
 };
 
-#endif
+#endif // GRAPHICS_GRAPHICS_H

@@ -271,7 +271,8 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
 
     Scene scene;
     Camera cam;
-    cam.create(WINDOW_WIDTH, WINDOW_HEIGHT, cam_pos, cam_front, cam_up, 45.0f);
+    cam.init(cam_pos, cam_front, cam_up, 45.0f,
+            (float) WINDOW_WIDTH / (float) WINDOW_HEIGHT);
     SceneObject &elephant_object = scene.addObject(elephant, glm::mat4(1.0f),
             program);
 
@@ -314,7 +315,6 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         cam.pos = cam_pos;
         cam.front = cam_front;
         cam.up = cam_up;
-        cam.fov = cam_fov;
 
         // clear the buffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
