@@ -239,15 +239,10 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         return 0;
     }
 
-    // context variables (device and rendering)
-    HDC dc;
-    HGLRC rc;
-    HWND window;
-
     // opengl setup
     OpenGLWrapper graphics;
-    if(!graphics.init(&window, &dc, &rc, inst, WINDOW_CLASS_NAME,
-        WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT)) {
+    if(!graphics.init(inst, WINDOW_CLASS_NAME, WINDOW_TITLE, WINDOW_WIDTH,
+                WINDOW_HEIGHT)) {
         fprintf(stderr, "Could not initialize OpenGL, aborting\n");
 
         // Windows wants 0 returned if message loop is not reached
@@ -263,7 +258,7 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         return 0;
     }
 
-    graphics.useShaderProgram(program);
+    program.use();
 
     // set the clear color for the context
     glClearColor(0.0f, 0.2f, 0.8f, 1.0f);
@@ -276,7 +271,8 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
 
     Scene scene;
     Camera cam;
-    cam.create(WINDOW_WIDTH, WINDOW_HEIGHT, cam_pos, cam_front, cam_up, 45.0f);
+    cam.init(cam_pos, cam_front, cam_up, 45.0f,
+            (float) WINDOW_WIDTH / (float) WINDOW_HEIGHT);
     SceneObject &elephant_object = scene.addObject(elephant, glm::mat4(1.0f),
             program);
 
@@ -319,7 +315,6 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         cam.pos = cam_pos;
         cam.front = cam_front;
         cam.up = cam_up;
-        cam.fov = cam_fov;
 
         // clear the buffer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -327,9 +322,7 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         scene.draw(cam);
 
         // swap buffers
-        SwapBuffers(dc);
-      
-        //graphics.doDrawIteration();
+        SwapBuffers(graphics.dc);
     }
 
     // clean everything up

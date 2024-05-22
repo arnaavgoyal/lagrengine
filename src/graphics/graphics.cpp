@@ -28,8 +28,8 @@ static FARPROC getOpenGLFunction(HMODULE mod, char const *proc_name) {
     return proc;
 }
 
-int OpenGLWrapper::init(HWND *window, HDC *dc, HGLRC *rc, HINSTANCE inst, char const *class_name, char const *title, unsigned width, unsigned height) {
-
+bool OpenGLWrapper::init(HINSTANCE inst, char const *class_name, char const *title,
+        unsigned width, unsigned height) {
     // create a dummy window
     HWND dummy_window = createWindow(inst, class_name, title, width, height, false);
 
@@ -101,7 +101,7 @@ int OpenGLWrapper::init(HWND *window, HDC *dc, HGLRC *rc, HINSTANCE inst, char c
     DestroyWindow(dummy_window);
 
     // create a window
-    *window = createWindow(inst, class_name, title, width, height, true);
+    window = createWindow(inst, class_name, title, width, height, true);
 
     int pixel_format_attribs[] = {
         WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
@@ -116,11 +116,11 @@ int OpenGLWrapper::init(HWND *window, HDC *dc, HGLRC *rc, HINSTANCE inst, char c
         0
     };
 
-    *dc = GetDC(*window);
+    dc = GetDC(window);
 
     int pixel_format;
     unsigned int num_formats;
-    wglChoosePixelFormatARB(*dc, pixel_format_attribs, 0, 1, &pixel_format,
+    wglChoosePixelFormatARB(dc, pixel_format_attribs, 0, 1, &pixel_format,
             &num_formats);
 
     if(!num_formats) {
@@ -131,9 +131,9 @@ int OpenGLWrapper::init(HWND *window, HDC *dc, HGLRC *rc, HINSTANCE inst, char c
     }
 
     PIXELFORMATDESCRIPTOR pfd;
-    DescribePixelFormat(*dc, pixel_format, sizeof(pfd), &pfd);
+    DescribePixelFormat(dc, pixel_format, sizeof(pfd), &pfd);
 
-    if(!SetPixelFormat(*dc, pixel_format, &pfd)) {
+    if(!SetPixelFormat(dc, pixel_format, &pfd)) {
         fprintf(stderr, "Failed to set pixel format for the DC\n");
 
         // false on failure
@@ -147,18 +147,18 @@ int OpenGLWrapper::init(HWND *window, HDC *dc, HGLRC *rc, HINSTANCE inst, char c
         0
     };
 
-    *rc = wglCreateContextAttribsARB(*dc, 0, gl_attribs);
+    rc = wglCreateContextAttribsARB(dc, 0, gl_attribs);
 
-    if(!(*rc)) {
+    if(!(rc)) {
         fprintf(stderr, "Failed to create a rendering context\n");
 
         // false on failure
         return false;
     }
 
-    wglMakeCurrent(*dc, *rc);
+    wglMakeCurrent(dc, rc);
 
-    opengl = LoadLibraryA("opengl32.dll");
+    HMODULE opengl = LoadLibraryA("opengl32.dll");
 
     if(!opengl) {
         fprintf(stderr, "Failed to load OpenGL32.dll\n");
@@ -179,67 +179,18 @@ int OpenGLWrapper::init(HWND *window, HDC *dc, HGLRC *rc, HINSTANCE inst, char c
     // set the clear color for the context
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-    // set class members
-    this->dc = dc;
-    this->rc = rc;
-
     // set stb image to orient images properly
     stbi_set_flip_vertically_on_load(true);
+
+    FreeLibrary(opengl);
 
     // true on success
     return true;
 }
 
-int OpenGLWrapper::useShaderProgram(ShaderProgram program) {
-    glUseProgram(program.id);
-    return 1;
-}
-
-void OpenGLWrapper::drawMesh(ShaderProgram program, Mesh &mesh) {
-    for(int i = 0; i < mesh.materials.size() * 3; i += 3) {
-        program.setUniformInt("ambient", i);
-        program.setUniformInt("diffuse", i + 1);
-        program.setUniformInt("specular", i + 2);
-    }
-    mesh.draw();
-}
-
-void OpenGLWrapper::drawModel(ShaderProgram program, Model &model) {
-    for(Mesh mesh : model.meshes) {
-        drawMesh(program, mesh);
-    }
-}
-
-int OpenGLWrapper::initPipeline(unsigned vertices_len, float *vertices) {
-
-    // very basic VAO and VBO implementation
-    unsigned int vao, vbo;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertices_len, vertices,
-            GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
-            (void*) 0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
-            (void*) (3 * sizeof(float)));
-
-    return 1;
-}
-
-int OpenGLWrapper::doDrawIteration() {
-
-    // clear the buffer
-	glClear(GL_COLOR_BUFFER_BIT);
-
-    // draw a triangle
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-
-    // swap buffers
-    SwapBuffers(*dc);
-
-    return 1;
+void OpenGLWrapper::destroy() {
+    // destroy everything necessary
+    wglMakeCurrent(0, 0);
+    wglDeleteContext(rc);
+    DestroyWindow(window);
 }
