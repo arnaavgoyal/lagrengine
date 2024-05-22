@@ -258,7 +258,7 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         return 0;
     }
 
-    graphics.useShaderProgram(program);
+    program.use();
 
     // set the clear color for the context
     glClearColor(0.0f, 0.2f, 0.8f, 1.0f);
@@ -323,8 +323,6 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
 
         // swap buffers
         SwapBuffers(graphics.dc);
-      
-        //graphics.doDrawIteration();
     }
 
     // clean everything up

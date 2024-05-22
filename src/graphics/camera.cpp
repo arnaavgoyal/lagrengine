@@ -14,3 +14,7 @@ void Camera::setProjection(float fov, float aspect_ratio) {
     proj = glm::perspective(glm::radians(fov), aspect_ratio, 0.1f, 100.0f);
 }
 
+glm::mat4 Camera::getView() {
+    return glm::lookAt(pos, pos + front, up);
+}
+

@@ -34,11 +34,7 @@ struct Scene {
 
     void draw(Camera &cam) {
         // calculate view matrix
-        glm::mat4 view = glm::lookAt(
-            cam.pos,
-            cam.pos + cam.front,
-            cam.up
-        );
+        glm::mat4 view = cam.getView();
 
         for (auto &[shader, objs] : shader_obj_map) {
 

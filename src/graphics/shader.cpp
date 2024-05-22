@@ -118,6 +118,10 @@ void ShaderProgram::destroy() {
     glDeleteProgram(id);
 }
 
+void ShaderProgram::use() {
+    glUseProgram(id);
+}
+
 bool ShaderProgram::setUniformInt(std::string name, int value) const {
     int location = glGetUniformLocation(id, name.c_str());
     if(location == -1) {

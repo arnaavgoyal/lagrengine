@@ -188,36 +188,9 @@ bool OpenGLWrapper::init(HINSTANCE inst, char const *class_name, char const *tit
     return true;
 }
 
-int OpenGLWrapper::useShaderProgram(ShaderProgram program) {
-    glUseProgram(program.id);
-    return 1;
-}
-
-void OpenGLWrapper::drawMesh(ShaderProgram program, Mesh &mesh) {
-    for(int i = 0; i < mesh.materials.size() * 3; i += 3) {
-        program.setUniformInt("ambient", i);
-        program.setUniformInt("diffuse", i + 1);
-        program.setUniformInt("specular", i + 2);
-    }
-    mesh.draw();
-}
-
-void OpenGLWrapper::drawModel(ShaderProgram program, Model &model) {
-    for(Mesh mesh : model.meshes) {
-        drawMesh(program, mesh);
-    }
-}
-
-int OpenGLWrapper::doDrawIteration() {
-
-    // clear the buffer
-	glClear(GL_COLOR_BUFFER_BIT);
-
-    // draw a triangle
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-
-    // swap buffers
-    SwapBuffers(dc);
-
-    return 1;
+void OpenGLWrapper::destroy() {
+    // destroy everything necessary
+    wglMakeCurrent(0, 0);
+    wglDeleteContext(rc);
+    DestroyWindow(window);
 }

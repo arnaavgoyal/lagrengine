@@ -27,7 +27,13 @@ struct Camera {
      */
     void init(glm::vec3 world_pos, glm::vec3 cam_front, glm::vec3 world_up,
             float fov, float aspect_ratio);
+    /**
+     * Sets the projection matrix for the camera
+     * @param fov the field of view in degrees
+     * @param aspect_ratio the window's aspect ratio
+     */
     void setProjection(float fov, float aspect_ratio);
+    glm::mat4 getView();
 };
 
 #endif // GRAPHICS_CAMERA_HH

@@ -19,7 +19,7 @@ struct OpenGLWrapper {
     HGLRC rc;
 
     /**
-     * Initializes the engine
+     * Initializes the graphics engine
      * @param inst the current instance
      * @param class_name the name of the window class to use
      * @param title the title of the window
@@ -30,17 +30,10 @@ struct OpenGLWrapper {
     bool init(HINSTANCE inst, char const *class_name, char const *title,
             unsigned width, unsigned height);
 
-    int useShaderProgram(ShaderProgram shader);
-    void drawMesh(ShaderProgram shader, Mesh &mesh);
-    void drawModel(ShaderProgram shader, Model &mesh);
-    int doDrawIteration();
-
-    void destroy() {
-        // destroy everything necessary
-        wglMakeCurrent(0, 0);
-        wglDeleteContext(rc);
-        DestroyWindow(window);
-    }
+    /**
+     * Destroys the graphics engine
+     */
+    void destroy();
 };
 
 #endif // GRAPHICS_GRAPHICS_H
