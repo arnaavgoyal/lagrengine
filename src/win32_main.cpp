@@ -1,6 +1,7 @@
 #include <cassert>
 #include <fcntl.h>
 #include <fstream>
+//#include <hidusage.h>
 #include <io.h>
 #include <iostream>
 #include <stdio.h>
@@ -25,6 +26,7 @@
 #include "graphics/shader.h"
 #include "graphics/texture.h"
 #include "graphics/vertex.h"
+#include "input/input.h"
 #include "os/window.h"
 #include "utils/event.h"
 
@@ -32,13 +34,6 @@
 #define WINDOW_TITLE "Lagrengine"
 #define WINDOW_WIDTH 600
 #define WINDOW_HEIGHT 400
-
-static float const cam_speed = 0.05f;
-
-static glm::vec3 cam_pos(0.0f, 0.0f, 5.0f);
-static glm::vec3 cam_front(0.0f, 0.0f, -1.0f);
-static glm::vec3 cam_up(0.0f, 1.0f, 0.0f);
-static float cam_fov = 45.0f;
 
 /**
  * Window procedure callback to handle messages
@@ -50,99 +45,60 @@ static float cam_fov = 45.0f;
  */
 LRESULT CALLBACK windowCallback(HWND window, UINT msg, WPARAM wParam,
         LPARAM lParam) {
-    static bool mouse_move_cam = false;
-    static int c_mouse_x = WINDOW_WIDTH / 2;
-    static int c_mouse_y = WINDOW_HEIGHT / 2;
+    
     LRESULT result;
     switch(msg) {
-        case WM_CHAR: {
-            switch(wParam) {
-            case 'w':
-                cam_pos += cam_speed * cam_front;
-                break;
-            case 'a':
-                cam_pos -= glm::normalize(glm::cross(cam_front, cam_up)) *
-                cam_speed;
-                break;
-            case 's':
-                cam_pos -= cam_speed * cam_front;
-                break;
-            case 'd':
-                cam_pos += glm::normalize(glm::cross(cam_front, cam_up)) *
-                cam_speed;
-                break;
-            case ' ':
-                cam_pos += cam_speed * cam_up;
-                break;
-            default:
-                break;
-            }
-            result = 0;
-            break;
-        }
-        case WM_RBUTTONDOWN:
-            mouse_move_cam = true;
-            SetCapture(window);
-            c_mouse_x = GET_X_LPARAM(lParam);
-            c_mouse_y = GET_Y_LPARAM(lParam);
-            result = 0;
-            break;
-        case WM_RBUTTONUP:
-            mouse_move_cam = false;
-            ReleaseCapture();
-            result = 0;
-            break;
-        case WM_MOUSEMOVE: {
-            static float yaw = -90.0f;
-            static float pitch = 0.0f;
-            static float sens = 0.1f;
+        // case WM_MOUSEMOVE: {
+        //     static float yaw = -90.0f;
+        //     static float pitch = 0.0f;
+        //     static float sens = 0.1f;
 
-            if (!mouse_move_cam) {
-                result = 0;
-                break;
-            }
+        //     if (!mouse_move_cam) {
+        //         result = 0;
+        //         break;
+        //     }
 
-            int mouse_x = GET_X_LPARAM(lParam);
-            int mouse_y = GET_Y_LPARAM(lParam);
+        //     int mouse_x = GET_X_LPARAM(lParam);
+        //     int mouse_y = GET_Y_LPARAM(lParam);
 
-            float off_x = mouse_x - c_mouse_x;
-            float off_y = c_mouse_y - mouse_y;
+        //     float off_x = mouse_x - c_mouse_x;
+        //     float off_y = c_mouse_y - mouse_y;
 
-            c_mouse_x = mouse_x;
-            c_mouse_y = mouse_y;
+        //     c_mouse_x = mouse_x;
+        //     c_mouse_y = mouse_y;
 
-            off_x *= sens;
-            off_y *= sens;
+        //     off_x *= sens;
+        //     off_y *= sens;
 
-            yaw += off_x;
-            pitch += off_y;
+        //     yaw += off_x;
+        //     pitch += off_y;
 
-            glm::vec3 dir(
-                glm::cos(glm::radians(yaw)) * glm::cos(glm::radians(pitch)),
-                glm::sin(glm::radians(pitch)),
-                glm::sin(glm::radians(yaw)) * glm::cos(glm::radians(pitch))
-            );
-            cam_front = glm::normalize(dir);
+        //     glm::vec3 dir(
+        //         glm::cos(glm::radians(yaw)) * glm::cos(glm::radians(pitch)),
+        //         glm::sin(glm::radians(pitch)),
+        //         glm::sin(glm::radians(yaw)) * glm::cos(glm::radians(pitch))
+        //     );
+        //     cam_front = glm::normalize(dir);
 
-            result = 0;
-            break;
-        }
-        case WM_MOUSEWHEEL: {
-            short delta = GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA;
+        //     result = 0;
+        //     break;
+        // }
+        // case WM_MOUSEWHEEL: {
+        //     short delta = GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA;
             
-            // towards user / downwards
-            cam_fov -= (float)delta;
+        //     // towards user / downwards
+        //     cam_fov -= (float)delta;
 
-            if (cam_fov < 1.0f) {
-                cam_fov = 1.0f;
-            }
-            else if (cam_fov > 89.0f) {
-                cam_fov = 89.0f;
-            }
+        //     if (cam_fov < 1.0f) {
+        //         cam_fov = 1.0f;
+        //     }
+        //     else if (cam_fov > 89.0f) {
+        //         cam_fov = 89.0f;
+        //     }
 
-            result = 0;
-            break;
-        }
+        //     result = 0;
+        //     break;
+        // }
         case WM_CLOSE:
             event::trigger(WindowCloseRequestedEvent{});
             PostQuitMessage(0);
@@ -227,8 +183,22 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
     // setup the crt io
     setupCRTIO();
 
-    // start up the engine thread
-    std::thread engine(engineInit);
+    // register for raw input
+    // unsigned const NRID = 2;
+    // RAWINPUTDEVICE rid[NRID];
+    // rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+    // rid[0].usUsage     = HID_USAGE_GENERIC_MOUSE;
+    // rid[0].dwFlags     = 0;
+    // rid[0].hwndTarget  = 0;
+    // rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+    // rid[1].usUsage     = HID_USAGE_GENERIC_KEYBOARD;
+    // rid[1].dwFlags     = 0;
+    // rid[1].hwndTarget  = 0;
+    // if (!RegisterRawInputDevices(rid, NRID, sizeof(RAWINPUTDEVICE))) {
+    //     // error with raw input
+    //     fprintf(stderr, "Could not register raw input\n");
+    //     return 0;
+    // }
 
     // register the window
     if(!registerWindowClass(inst, WINDOW_CLASS_NAME, windowCallback)) {
@@ -239,53 +209,26 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
         return 0;
     }
 
-    // opengl setup
+    // set up the window
     OpenGLWrapper graphics;
     if(!graphics.init(inst, WINDOW_CLASS_NAME, WINDOW_TITLE, WINDOW_WIDTH,
                 WINDOW_HEIGHT)) {
-        fprintf(stderr, "Could not initialize OpenGL, aborting\n");
-
-        // Windows wants 0 returned if message loop is not reached
-        return 0;
+        fprintf(stderr, "Could not initialize the window, aborting\n");
+        return 1;
     }
 
-    // TODO this is a shader program test that should be removed later
-    ShaderProgram program;
-    if(!program.create("assets/shaders/basic_vert.glsl",
-                "assets/shaders/basic_frag.glsl")) {
-        fprintf(stderr, "Failed to create shader program\n");
+    // start up the engine thread
+    std::thread engine_thread(engineInit, graphics);
+    engine_thread.detach();
 
-        return 0;
-    }
-
-    program.use();
-
-    // set the clear color for the context
-    glClearColor(0.0f, 0.2f, 0.8f, 1.0f);
-
-    // enable depth
-    glEnable(GL_DEPTH_TEST);
-
-    Model elephant;
-    elephant.create("assets/elephant/Mesh_Elephant.obj");
-
-    Scene scene;
-    Camera cam;
-    cam.init(cam_pos, cam_front, cam_up, 45.0f,
-            (float) WINDOW_WIDTH / (float) WINDOW_HEIGHT);
-    SceneObject &elephant_object = scene.addObject(elephant, glm::mat4(1.0f),
-            program);
-
-    // necessary loop variables
-    bool running = true;
     MSG msg;
-    auto init_time
-        = std::chrono::system_clock::now().time_since_epoch()
-        / std::chrono::milliseconds(10);
+    bool running = true;
+    while (running) {
 
-    while(running) {
-        // Check for a message with no filters, remove it if there is one
+        event::waitFor<EngineTickEvent>();
+
         while(PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
+
             // do NOT sent the quit message to the window procedure
             if(msg.message == WM_QUIT) {
                 running = false;
@@ -298,37 +241,8 @@ int APIENTRY WinMain(HINSTANCE inst, HINSTANCE prevInst, PSTR cmdLine,
             }
         }
 
-        auto time_diff
-            = std::chrono::system_clock::now().time_since_epoch()
-            / std::chrono::milliseconds(10)
-            - init_time;
-
-        elephant_object.world = glm::scale(glm::mat4(1.0f),
-                glm::vec3(0.01f, 0.01f, 0.01f));
-
-        elephant_object.world = glm::rotate(
-            elephant_object.world,
-            (float)time_diff * glm::radians(1.0f),
-            glm::vec3(1.0f, 0.5f, 0.0f)
-        );
-
-        cam.pos = cam_pos;
-        cam.front = cam_front;
-        cam.up = cam_up;
-
-        // clear the buffer
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        scene.draw(cam);
-
-        // swap buffers
-        SwapBuffers(graphics.dc);
+        KeyInput::update();
     }
-
-    // clean everything up
-    graphics.destroy();
-    elephant.destroy();
-    program.destroy();
 
     // Windows wants the wParam of the WM_QUIT message returned, we can choose
     // to disregard this

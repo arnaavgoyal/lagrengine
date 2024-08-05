@@ -4,104 +4,226 @@
 #include <iostream>
 #include <syncstream>
 #include <thread>
-#include <windows.h>
+
+#include <glad/gl.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
+#undef GLM_ENABLE_EXPERIMENTAL
+#include <glm/mat4x4.hpp>
+#include <glad/wgl.h>
 
 #include "engine.h"
-#include "threading/job.h"
-#include "threading/thread.h"
+#include "graphics/graphics.h"
+#include "graphics/mesh.h"
+#include "graphics/model.h"
+#include "graphics/scene.h"
+#include "graphics/shader.h"
+#include "graphics/texture.h"
+#include "graphics/vertex.h"
+#include "input/input.h"
 #include "utils/event.h"
-#include "utils/log.h"
-#include "utils/tsq.h"
 
-struct SimulationStartEvent { };
-struct SimulationEndEvent { };
-struct RenderStartEvent { };
-struct RenderEndEvent { };
+// ticks ------------------------------
 
-void engineMain() {
+static const unsigned TICKRATE = 64;
 
-    bool done;
-
-    JobManager jm;
-    auto job_func = [](std::string name, void *){ std::osyncstream(std::cerr) << logNow() << "Doing Job '" << name << "'\n"; };
-
-    auto inij = jm.registerJob("init", std::bind(job_func, "init", std::placeholders::_1), nullptr);
-    auto simj = jm.registerJob("simulation", std::bind(job_func, "simulation", std::placeholders::_1), nullptr);
-    auto pyj1 = jm.registerJob("physics1", std::bind(job_func, "physics1", std::placeholders::_1), nullptr);
-    auto pyj2 = jm.registerJob("physics2", std::bind(job_func, "physics2", std::placeholders::_1), nullptr);
-    auto pyj3 = jm.registerJob("physics3", std::bind(job_func, "physics3", std::placeholders::_1), nullptr);
-    auto pyj4 = jm.registerJob("physics4", std::bind(job_func, "physics4", std::placeholders::_1), nullptr);
-    auto pyjf = jm.registerJob("physicsF", std::bind(job_func, "physicsF", std::placeholders::_1), nullptr);
-    auto occj = jm.registerJob("occlusion", std::bind(job_func, "occlusion", std::placeholders::_1), nullptr);
-    auto renj = jm.registerJob("render", std::bind(job_func, "render", std::placeholders::_1), nullptr);
-    auto winj = jm.registerJob("window", std::bind(job_func, "window", std::placeholders::_1), nullptr);
-    auto resj = jm.registerJob("reset", std::bind(job_func, "reset", std::placeholders::_1), nullptr);
-    auto finj = jm.registerJob("finish", [&done](void *){ std::osyncstream(std::cerr) << logNow() << "Doing Job 'finish'\n"; done = true; }, nullptr);
-
-    jm.registerDependencies(inij, jm.graphRoot());
-    jm.registerDependencies(simj, inij);
-    jm.registerDependencies(pyj1, inij);
-    jm.registerDependencies(pyj2, inij);
-    jm.registerDependencies(pyj3, inij);
-    jm.registerDependencies(pyj4, inij);
-    jm.registerDependencies(pyjf, pyj1, pyj2, pyj3, pyj4);
-    jm.registerDependencies(occj, simj, pyjf);
-    jm.registerDependencies(renj, simj, occj);
-    jm.registerDependencies(winj, renj);
-    jm.registerDependencies(resj, renj, occj);
-    jm.registerDependencies(finj, resj, winj);
-
-    std::fstream out("jobgraph.dot", std::fstream::out);
-    out << jm;
-    out.close();
-
-    jm.compile();
-
+void tickTrigger() {
+    static auto interval = std::chrono::seconds(1) / TICKRATE;
     while (true) {
-
-        done = false;
-        jm.runIteration();
-        while (!done) { }
-        std::osyncstream(std::cerr) << "All jobs done!\n";
-
-        // ...
-
-        std::this_thread::sleep_for(std::chrono::seconds(10));
-
+        std::this_thread::sleep_for(interval);
+        event::trigger(EngineTickEvent{});
     }
 }
 
-void engineInit() {
+// movement ------------------------------
 
-    event::registerListener<SimulationEndEvent>(
-        [](SimulationEndEvent){
-            std::osyncstream(std::cerr) << "Sim ended! w/ cout\n";
-            std::osyncstream(std::cerr) << "Sim ended! w/ cerr\n";
-        }
+static float const cam_speed = 0.00005f;
+
+static glm::vec3 cam_pos(0.0f, 0.0f, 5.0f);
+static glm::vec3 cam_front(0.0f, 0.0f, -1.0f);
+static glm::vec3 cam_up(0.0f, 1.0f, 0.0f);
+static float cam_fov = 45.0f;
+
+static float yaw = -90.0f;
+static float pitch = 0.0f;
+static float sens = 0.0001f;
+
+void moveForward(void *) {
+    cam_pos += cam_speed * cam_front;
+}
+
+void moveLeft(void *) {
+    cam_pos -= glm::normalize(glm::cross(cam_front, cam_up)) * cam_speed;
+}
+
+void moveBackward(void *) {
+    cam_pos -= cam_speed * cam_front;
+}
+
+void moveRight(void *) {
+    cam_pos += glm::normalize(glm::cross(cam_front, cam_up)) * cam_speed;
+}
+
+void moveUp(void *) {
+    cam_pos += cam_speed * cam_up;
+}
+
+void moveDown(void *) {
+    cam_pos -= cam_speed * cam_up;
+}
+
+void lookUp(void *) {
+    pitch += sens;
+}
+
+void lookDown(void *) {
+    pitch -= sens;
+}
+
+void lookLeft(void *) {
+    yaw -= sens;
+}
+
+void lookRight(void *) {
+    yaw += sens;
+}
+
+// void lookAround(void *) {
+//     static float yaw = -90.0f;
+//     static float pitch = 0.0f;
+//     static float sens = 0.1f;
+
+//     if (!mouse_move_cam) { return; }
+
+//     int mouse_x = GET_X_LPARAM(lParam);
+//     int mouse_y = GET_Y_LPARAM(lParam);
+
+//     float off_x = mouse_x - c_mouse_x;
+//     float off_y = c_mouse_y - mouse_y;
+
+//     c_mouse_x = mouse_x;
+//     c_mouse_y = mouse_y;
+
+//     off_x *= sens;
+//     off_y *= sens;
+
+//     yaw += off_x;
+//     pitch += off_y;
+
+//     glm::vec3 dir(
+//         glm::cos(glm::radians(yaw)) * glm::cos(glm::radians(pitch)),
+//         glm::sin(glm::radians(pitch)),
+//         glm::sin(glm::radians(yaw)) * glm::cos(glm::radians(pitch))
+//     );
+
+//     cam_front = glm::normalize(dir);
+// }
+
+// engine ------------------------------
+
+static bool run = true;
+void terminate(WindowCloseRequestedEvent) {
+    run = false;
+}
+
+int engineInit(OpenGLWrapper graphics) {
+
+    // start tick trigger thread
+    std::thread tick_thread(tickTrigger);
+    tick_thread.detach();
+
+    // opengl setup
+    graphics.initGL();
+
+    ShaderProgram program;
+    if(!program.create("assets/shaders/basic_vert.glsl",
+                "assets/shaders/basic_frag.glsl")) {
+        fprintf(stderr, "Failed to create shader program\n");
+        return 1;
+    }
+
+    program.use();
+
+    // set the clear color for the context
+    glClearColor(0.0f, 0.2f, 0.8f, 1.0f);
+
+    // enable depth
+    glEnable(GL_DEPTH_TEST);
+
+    Model elephant;
+    elephant.create("assets/elephant/Mesh_Elephant.obj");
+
+    Scene scene;
+    Camera cam;
+    cam.init(cam_pos, cam_front, cam_up, 45.0f,
+            (float) graphics.width / (float) graphics.height);
+    SceneObject &elephant_object = scene.addObject(elephant, glm::mat4(1.0f),
+            program);
+
+    // set keyboard input handlers
+    //KeyInput::init();
+    InputContext ic;
+    ic.bind(
+        InputBindInfo{ InputDeviceKind::keyboard, InputActionKind::keypressed, 0x57, 0 }, moveForward, // w
+        InputBindInfo{ InputDeviceKind::keyboard, InputActionKind::keypressed, 0x41, 0 }, moveLeft, // a
+        InputBindInfo{ InputDeviceKind::keyboard, InputActionKind::keypressed, 0x53, 0 }, moveBackward, // s
+        InputBindInfo{ InputDeviceKind::keyboard, InputActionKind::keypressed, 0x44, 0 }, moveRight, // d
+        InputBindInfo{ InputDeviceKind::keyboard, InputActionKind::keypressed, VK_SPACE, 0 }, moveUp,
+        InputBindInfo{ InputDeviceKind::keyboard, InputActionKind::keypressed, VK_SPACE, INPUT_MOD_SHIFT }, moveDown,
+
+        InputBindInfo{ InputDeviceKind::keyboard, InputActionKind::keypressed, VK_UP, 0 }, lookUp,
+        InputBindInfo{ InputDeviceKind::keyboard, InputActionKind::keypressed, VK_LEFT, 0 }, lookLeft,
+        InputBindInfo{ InputDeviceKind::keyboard, InputActionKind::keypressed, VK_DOWN, 0 }, lookDown,
+        InputBindInfo{ InputDeviceKind::keyboard, InputActionKind::keypressed, VK_RIGHT, 0 }, lookRight
     );
+    KeyInput::use(ic);
 
-    event::registerListener<WindowCloseRequestedEvent>(
-        [](WindowCloseRequestedEvent e){
-            std::osyncstream(std::cerr) << "Window close requested!\n";
-        }
-    );
+    auto init_time
+        = std::chrono::system_clock::now().time_since_epoch()
+        / std::chrono::milliseconds(10);
 
-    event::registerListener<WindowDestroyStartEvent>(
-        [](WindowDestroyStartEvent e){
-            std::osyncstream(std::cerr) << "Window destroy start...\n";
-        }
-    );
+    while(run) {
 
-    event::registerListener<WindowDestroyEndEvent>(
-        [](WindowDestroyEndEvent e){
-            std::osyncstream(std::cerr) << "Window destroy end!\n";
-        }
-    );
+        auto time_diff
+            = std::chrono::system_clock::now().time_since_epoch()
+            / std::chrono::milliseconds(10)
+            - init_time;
 
-    // ...
+        elephant_object.world = glm::scale(glm::mat4(1.0f),
+                glm::vec3(0.01f, 0.01f, 0.01f));
 
-    engineMain();
+        elephant_object.world = glm::rotate(
+            elephant_object.world,
+            (float)time_diff * glm::radians(1.0f),
+            glm::vec3(1.0f, 0.5f, 0.0f)
+        );
 
-    // ...
+        glm::vec3 dir(
+            glm::cos(glm::radians(yaw)) * glm::cos(glm::radians(pitch)),
+            glm::sin(glm::radians(pitch)),
+            glm::sin(glm::radians(yaw)) * glm::cos(glm::radians(pitch))
+        );
+        cam_front = glm::normalize(dir);
 
+        cam.pos = cam_pos;
+        cam.front = cam_front;
+        cam.up = cam_up;
+
+        // clear the buffer
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        scene.draw(cam);
+
+        // swap buffers
+        graphics.swapBuffers();
+    }
+
+    // clean everything up
+    graphics.destroy();
+    elephant.destroy();
+    program.destroy();
+
+    return 0;
 }
