@@ -11,6 +11,7 @@
  * Wrapper and engine for using OpenGL on Windows
  */
 struct OpenGLWrapper {
+
     /** the window */
     HWND window;
     /** the device context */
@@ -18,22 +19,29 @@ struct OpenGLWrapper {
     /** the rendering context */
     HGLRC rc;
 
+    unsigned width;
+    unsigned height;
+
     /**
-     * Initializes the graphics engine
-     * @param inst the current instance
-     * @param class_name the name of the window class to use
-     * @param title the title of the window
-     * @param width the width of the window in pixels
-     * @param height the height of the window in pixels
-     * @return whether or not the initialization suceeds
-     */
+     * Initializes the actual window for rendering.
+     * Call this on the WindowCallback thread (this function creates the message queue)
+    */
     bool init(HINSTANCE inst, char const *class_name, char const *title,
-            unsigned width, unsigned height);
+            unsigned wnd_width, unsigned wnd_height);
+
+    /**
+     * Initializes rendering stuff and loads OpenGL.
+     * Call this on the Rendering thread (OpenGL is only valid on one thread)
+    */
+    bool initGL();
 
     /**
      * Destroys the graphics engine
      */
     void destroy();
+
+    void swapBuffers() { SwapBuffers(dc); }
+    void captureMouse() { SetCapture(window); }
 };
 
 #endif // GRAPHICS_GRAPHICS_H

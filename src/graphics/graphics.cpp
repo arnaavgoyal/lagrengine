@@ -29,7 +29,11 @@ static FARPROC getOpenGLFunction(HMODULE mod, char const *proc_name) {
 }
 
 bool OpenGLWrapper::init(HINSTANCE inst, char const *class_name, char const *title,
-        unsigned width, unsigned height) {
+        unsigned wnd_width, unsigned wnd_height) {
+
+    width = wnd_width;
+    height = wnd_height;
+
     // create a dummy window
     HWND dummy_window = createWindow(inst, class_name, title, width, height, false);
 
@@ -100,8 +104,14 @@ bool OpenGLWrapper::init(HINSTANCE inst, char const *class_name, char const *tit
     wglDeleteContext(dummy_rc);
     DestroyWindow(dummy_window);
 
-    // create a window
+    // create the actual window
     window = createWindow(inst, class_name, title, width, height, true);
+
+    // true on success
+    return true;
+}
+
+bool OpenGLWrapper::initGL() {
 
     int pixel_format_attribs[] = {
         WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
@@ -184,7 +194,6 @@ bool OpenGLWrapper::init(HINSTANCE inst, char const *class_name, char const *tit
 
     FreeLibrary(opengl);
 
-    // true on success
     return true;
 }
 
