@@ -11,15 +11,15 @@ bool ShaderProgram::create(std::string vertex_path, std::string fragment_path) {
 
     if(vertex_file.fail()) {
         fprintf(stderr, "Vertex shader %s does not exist\n",
-                vertex_path.c_str());
+            vertex_path.c_str());
 
         // false on failure
         return false;
     }
 
     std::string vertex_str = std::string(
-            std::istreambuf_iterator<char>(vertex_file),
-            std::istreambuf_iterator<char>());
+        std::istreambuf_iterator<char>(vertex_file),
+        std::istreambuf_iterator<char>());
     vertex_file.close();
 
     // read the fragment file into a string
@@ -27,15 +27,15 @@ bool ShaderProgram::create(std::string vertex_path, std::string fragment_path) {
 
     if(fragment_file.fail()) {
         fprintf(stderr, "Fragment shader %s does not exist\n",
-                fragment_path.c_str());
+            fragment_path.c_str());
 
         // false on failure
         return false;
     }
 
     std::string fragment_str = std::string(
-            std::istreambuf_iterator<char>(fragment_file),
-            std::istreambuf_iterator<char>());
+        std::istreambuf_iterator<char>(fragment_file),
+        std::istreambuf_iterator<char>());
     fragment_file.close();
 
     // error variables
@@ -53,7 +53,7 @@ bool ShaderProgram::create(std::string vertex_path, std::string fragment_path) {
     if(!status) {
         glGetShaderInfoLog(vertex_id, 1024, 0, infoLog);
         fprintf(stderr, "Failed to compile vertex shader: %s\n",
-                vertex_path.c_str());
+            vertex_path.c_str());
         fprintf(stderr, "%s\n", infoLog);
 
         // clean up
@@ -74,7 +74,7 @@ bool ShaderProgram::create(std::string vertex_path, std::string fragment_path) {
     if(!status) {
         glGetShaderInfoLog(fragment_id, 1024, 0, infoLog);
         fprintf(stderr, "Failed to compile fragment shader: %s\n",
-                fragment_path.c_str());
+            fragment_path.c_str());
         fprintf(stderr, "%s\n", infoLog);
 
         // clean up
@@ -127,4 +127,19 @@ bool ShaderProgram::setUniformInt(std::string name, int value) const {
     glUniform1i(location, value);
 
     return true;
+}
+
+bool ShaderProgram::setUniformFloat(std::string name, float value) const {
+    int location = glGetUniformLocation(id, name.c_str());
+    if(location == -1) {
+        return false;
+    }
+
+    glUniform1f(location, value);
+
+    return true;
+}
+
+bool ShaderProgram::operator<(ShaderProgram const other) const {
+    return this->id < other.id;
 }

@@ -10,6 +10,7 @@ struct Material {
     Texture ambient;
     Texture diffuse;
     Texture specular;
+    float shininess;
 };
 
 #endif // GRAPHICS_MATERIAL_H

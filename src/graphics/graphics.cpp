@@ -201,7 +201,7 @@ void OpenGLWrapper::drawMesh(ShaderProgram program, Mesh &mesh) {
         program.setUniformInt("diffuse", i + 1);
         program.setUniformInt("specular", i + 2);
     }
-    mesh.draw();
+    mesh.draw(program);
 }
 
 void OpenGLWrapper::drawModel(ShaderProgram program, Model &model) {

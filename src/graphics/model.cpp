@@ -23,12 +23,6 @@ void Model::destroy() {
 
 void Model::draw(ShaderProgram const &shader) {
     for(Mesh mesh : meshes) {
-        for(int i = 0; i < mesh.materials.size() * 3; i += 3) {
-            shader.setUniformInt("ambient", i);
-            shader.setUniformInt("diffuse", i + 1);
-            shader.setUniformInt("specular", i + 2);
-        }
-
-        mesh.draw();
+        mesh.draw(shader);
     }
 }

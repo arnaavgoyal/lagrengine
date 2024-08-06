@@ -32,9 +32,21 @@ struct ShaderProgram {
      */
     bool setUniformInt(std::string name, int value) const;
 
-    bool operator<(ShaderProgram other) const {
-        return this->id < other.id;
-    }
+    /**
+     * Sets an float uniform in the given shader program. The shader must be
+     * bound for this to work properly
+     * @param name the name of the uniform
+     * @param value the value to set the uniform too
+     * @return whether or not the function succeeded
+     */
+    bool setUniformFloat(std::string name, float value) const;
+
+    /**
+     * A less than operator for maps
+     * @param other the other shader program to compare to
+     * @return whether or not this shader program is less than the other
+     */
+    bool operator<(ShaderProgram const other) const;
 };
 
 #endif // UTILS_SHADER_H

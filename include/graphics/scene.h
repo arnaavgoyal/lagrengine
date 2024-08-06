@@ -55,7 +55,7 @@ struct Scene {
         for (auto &[shader, objs] : shader_obj_map) {
 
             glUseProgram(shader.id);
-                glUniformMatrix4fv(
+            glUniformMatrix4fv(
                 glGetUniformLocation(shader.id, "view"),
                 1,
                 GL_FALSE,
@@ -77,6 +77,10 @@ struct Scene {
                     GL_FALSE,
                     glm::value_ptr(obj.world)
                 );
+
+                shader.setUniformInt("mat.diffuse", 0);
+                shader.setUniformInt("mat.ambient", 1);
+                shader.setUniformInt("mat.specular", 2);
 
                 obj.model.draw(shader);
             }
