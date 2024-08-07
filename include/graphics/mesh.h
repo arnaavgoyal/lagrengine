@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "graphics/shader.h"
 #include "graphics/material.h"
 #include "graphics/texture.h"
 #include "graphics/vertex.h"
@@ -22,7 +23,7 @@ struct Mesh {
             std::vector<Material> materials);
     void destroy();
 
-    void draw();
+    void draw(ShaderProgram const &shader);
 };
 
 #endif // GRAPHICS_MESH_H

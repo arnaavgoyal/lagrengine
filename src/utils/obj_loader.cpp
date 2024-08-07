@@ -284,7 +284,8 @@ bool loadObj(std::vector<Mesh> &meshes, std::string path) {
         // if not any of the above and not a comment, we know the file is
         // improperly formatted
         else if(type != "#") {
-            //std::fprintf(stderr, "Object file is improperly formatted\n");
+            //std::fprintf(stderr,
+            //    "ERROR: Object file is improperly formatted\n");
 
             //return false;
         }
@@ -315,6 +316,7 @@ bool loadMtl(std::vector<Material> &materials, std::string path) {
 
     Material current_material;
     current_material.name = "*";
+    current_material.shininess = 0.0f;
 
     std::string line;
     while(std::getline(model_file, line)) {

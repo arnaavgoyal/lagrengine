@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string>
 #include <vector>
 
@@ -36,7 +37,7 @@ void Mesh::create(std::vector<Vertex> vertices,
     this->materials = materials;
 }
 
-void Mesh::draw() {
+void Mesh::draw(ShaderProgram const &shader) {
     glBindVertexArray(vao);
 
     for(int i = 0; i < materials.size(); i += 3) {
