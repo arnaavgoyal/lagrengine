@@ -2,8 +2,10 @@
 #define UTILS_EVENT_H
 
 #include <cassert>
+#include <condition_variable>
 #include <functional>
 #include <list>
+#include <mutex>
 #include <thread>
 
 namespace event {
@@ -33,15 +35,24 @@ template <typename EventType>
 struct Impl {
     using ListenerList = std::list<Listener<EventType>>;
     static ListenerList listeners;
+    static std::mutex mut;
+    static std::condition_variable cond;
 
     static void triggerImpl(EventType e) {
+        mut.lock();
+        mut.unlock();
+        cond.notify_all();
         for (auto &&l : listeners) {
             std::invoke(l, e);
         }
     }
 };
 template <typename EventType>
-typename Impl<EventType>::ListenerList Impl<EventType>::listeners = ListenerList();
+typename Impl<EventType>::ListenerList Impl<EventType>::listeners;
+template <typename EventType>
+std::mutex Impl<EventType>::mut;
+template <typename EventType>
+std::condition_variable Impl<EventType>::cond;
 
 void trigger();
 
@@ -54,8 +65,9 @@ void trigger();
  */
 template <typename EventType, typename... Args>
 void trigger(EventType e, Args... args) {
-    std::thread t(Impl<EventType>::triggerImpl, e);
-    t.detach();
+    //std::thread t(Impl<EventType>::triggerImpl, e);
+    //t.detach();
+    Impl<EventType>::triggerImpl(e);
     trigger(args...);
 }
 
@@ -110,6 +122,13 @@ template <typename EventType, typename... Args>
 void deregisterListeners(ListenerHandle<EventType> &lh, Args... args) {
     deregisterListener(lh);
     deregisterListeners(args...);
+}
+
+template <typename EventType>
+void waitFor() {
+    std::unique_lock lock(Impl<EventType>::mut);
+    Impl<EventType>::cond.wait(lock);
+    lock.unlock();
 }
 
 } // namespace event

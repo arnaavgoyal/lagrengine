@@ -5,6 +5,9 @@
 
 #include "texture.h"
 
+/**
+ * Represents a loaded material
+ */
 struct Material {
     std::string name;
     Texture ambient;

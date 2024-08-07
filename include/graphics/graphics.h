@@ -1,5 +1,5 @@
-#ifndef GRAPHICS_H
-#define GRAPHICS_H
+#ifndef GRAPHICS_GRAPHICS_H
+#define GRAPHICS_GRAPHICS_H
 
 #include <windows.h>
 
@@ -7,27 +7,41 @@
 #include "graphics/model.h"
 #include "graphics/shader.h"
 
+/**
+ * Wrapper and engine for using OpenGL on Windows
+ */
 struct OpenGLWrapper {
 
-    HDC *dc;
-    HGLRC *rc;
-    HMODULE opengl;
+    /** the window */
+    HWND window;
+    /** the device context */
+    HDC dc;
+    /** the rendering context */
+    HGLRC rc;
 
-    int init(HWND *actual, HDC *dc, HGLRC *rc, HINSTANCE inst,
-            char const *class_name, char const *title, unsigned width,
-            unsigned height);
-    int useShaderProgram(ShaderProgram shader);
-    void drawMesh(ShaderProgram shader, Mesh &mesh);
-    void drawModel(ShaderProgram shader, Model &mesh);
-    int initPipeline(unsigned vertices_len, float *vertices);
-    int doDrawIteration();
-    void destroy() {
+    unsigned width;
+    unsigned height;
 
-        // destroy everything necessary
-        wglMakeCurrent(0, 0);
-        wglDeleteContext(*rc);
-    }
+    /**
+     * Initializes the actual window for rendering.
+     * Call this on the WindowCallback thread (this function creates the message queue)
+    */
+    bool init(HINSTANCE inst, char const *class_name, char const *title,
+            unsigned wnd_width, unsigned wnd_height);
 
+    /**
+     * Initializes rendering stuff and loads OpenGL.
+     * Call this on the Rendering thread (OpenGL is only valid on one thread)
+    */
+    bool initGL();
+
+    /**
+     * Destroys the graphics engine
+     */
+    void destroy();
+
+    void swapBuffers() { SwapBuffers(dc); }
+    void captureMouse() { SetCapture(window); }
 };
 
-#endif
+#endif // GRAPHICS_GRAPHICS_H

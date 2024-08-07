@@ -24,6 +24,11 @@ struct ShaderProgram {
     void destroy();
 
     /**
+     * Uses the shader program
+     */
+    void use();
+
+    /**
      * Sets an integer uniform in the given shader program. The shader must be
      * bound for this to work properly
      * @param name the name of the uniform

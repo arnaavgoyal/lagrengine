@@ -1,31 +1,39 @@
 #ifndef GRAPHICS_CAMERA_H
 #define GRAPHICS_CAMERA_H
 
-#include <glad/gl.h>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
+/**
+ * Represents a camera that can be a scene can be rendered from
+ */
 struct Camera {
-
-    unsigned width;
-    unsigned height;
+    /** the position of the camera */
     glm::vec3 pos;
+    /** the camera's front vector */
     glm::vec3 front;
+    /** the up vector of the world */
     glm::vec3 up;
-    float fov;
+    /** the camera's projection matrix */
+    glm::mat4 proj;
 
-    void create(unsigned vp_width, unsigned vp_height,
-        glm::vec3 world_pos, glm::vec3 cam_front,
-        glm::vec3 world_up, float fov_deg) {
-        
-        width = vp_width;
-        height = vp_height;
-        pos = world_pos;
-        front = cam_front;
-        up = world_up;
-        fov = fov_deg;
-    }
-
+    /**
+     * Initializes the camera
+     * @param world_pos the camera's position
+     * @param cam_front the front vector of the camera
+     * @param vec3 world_up the up vector of the world
+     * @param fov the field of view in degrees
+     * @param aspect_ratio the window's aspect ratio
+     */
+    void init(glm::vec3 world_pos, glm::vec3 cam_front, glm::vec3 world_up,
+            float fov, float aspect_ratio);
+    /**
+     * Sets the projection matrix for the camera
+     * @param fov the field of view in degrees
+     * @param aspect_ratio the window's aspect ratio
+     */
+    void setProjection(float fov, float aspect_ratio);
+    glm::mat4 getView();
 };
 
-#endif
+#endif // GRAPHICS_CAMERA_HH
