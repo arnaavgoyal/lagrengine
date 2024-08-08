@@ -24,6 +24,7 @@
 #include "graphics/vertex.h"
 #include "input/input.h"
 #include "utils/event.h"
+#include "utils/registry.h"
 
 // ticks ------------------------------
 
@@ -39,7 +40,7 @@ void tickTrigger() {
 
 // movement ------------------------------
 
-static float const cam_speed = 0.00005f;
+static float const cam_speed = 0.00002f;
 
 static glm::vec3 cam_pos(0.0f, 0.0f, 5.0f);
 static glm::vec3 cam_front(0.0f, 0.0f, -1.0f);
@@ -48,7 +49,7 @@ static float cam_fov = 45.0f;
 
 static float yaw = -90.0f;
 static float pitch = 0.0f;
-static float sens = 0.0001f;
+static float sens = 0.0002f;
 
 void moveForward(void *) {
     cam_pos += cam_speed * cam_front;
@@ -152,15 +153,40 @@ int engineInit(OpenGLWrapper graphics) {
     // enable depth
     glEnable(GL_DEPTH_TEST);
 
-    Model elephant;
-    elephant.create("assets/elephant/Mesh_Elephant.obj");
+    Registry<std::string, Model> model_reg;
+
+    Model elephant_model;
+    auto path = "assets/elephant/Mesh_Elephant.obj";
+    elephant_model.create(path);
+    Handle elephant_handle = model_reg.put(path, elephant_model);
 
     Scene scene;
     Camera cam;
     cam.init(cam_pos, cam_front, cam_up, 45.0f,
             (float) graphics.width / (float) graphics.height);
-    SceneObject &elephant_object = scene.addObject(elephant, glm::mat4(1.0f),
-            program);
+    SceneObject &elephant_object1 = scene.addObject(
+        model_reg[elephant_handle],
+        glm::translate(
+            glm::scale(
+                glm::mat4(1.0f),
+                glm::vec3(0.01f, 0.01f, 0.01f)
+            ),
+            glm::vec3(100, 0, 0)
+        ),
+        program
+    );
+
+    SceneObject &elephant_object2 = scene.addObject(
+        model_reg[elephant_handle],
+        glm::translate(
+            glm::scale(
+                glm::mat4(1.0f),
+                glm::vec3(0.01f, 0.01f, 0.01f)
+            ),
+            glm::vec3(-100, 0, 0)
+        ),
+        program
+    );
 
     // set keyboard input handlers
     //KeyInput::init();
@@ -186,19 +212,17 @@ int engineInit(OpenGLWrapper graphics) {
 
     while(run) {
 
-        auto time_diff
-            = std::chrono::system_clock::now().time_since_epoch()
-            / std::chrono::milliseconds(10)
-            - init_time;
+        event::waitFor<EngineTickEvent>();
 
-        elephant_object.world = glm::scale(glm::mat4(1.0f),
-                glm::vec3(0.01f, 0.01f, 0.01f));
+        auto angle_diff = 0.7f;
+        auto last_angle = 1.0f;
 
-        elephant_object.world = glm::rotate(
-            elephant_object.world,
-            (float)time_diff * glm::radians(1.0f),
-            glm::vec3(1.0f, 0.5f, 0.0f)
+        elephant_object1.world = glm::rotate(
+            elephant_object1.world,
+            last_angle * glm::radians(1.0f),
+            glm::normalize(glm::vec3(1.0f, 0.5f, 0.0f))
         );
+        last_angle += angle_diff;
 
         glm::vec3 dir(
             glm::cos(glm::radians(yaw)) * glm::cos(glm::radians(pitch)),
@@ -222,7 +246,7 @@ int engineInit(OpenGLWrapper graphics) {
 
     // clean everything up
     graphics.destroy();
-    elephant.destroy();
+    elephant_model.destroy(); // this is bad with registry but im lazy
     program.destroy();
 
     return 0;
